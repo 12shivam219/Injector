@@ -46,8 +46,9 @@ class ProgressiveLoader:
                 if st.button(f"📄 Load More Files ({len(files) - loaded_count} remaining)", 
                            key=f"{key_prefix}_load_more", 
                            use_container_width=True):
-                    # Load next batch
-                    next_batch = min(self.batch_size, len(files) - loaded_count)
+                    # Load next batch instantly
+                    remaining_files = len(files) - loaded_count
+                    next_batch = min(self.batch_size * 2, remaining_files)  # Load more at once
                     st.session_state[f"{key_prefix}_loaded_count"] += next_batch
                     st.rerun()
         else:
@@ -133,9 +134,8 @@ class ProgressiveLoader:
                 st.session_state[f"{key}_current"] = current + 1
                 st.session_state[f"{key}_results"] = results
                 
-                # Auto-continue or complete
+                # Auto-continue without delay
                 if current + 1 < len(operations):
-                    time.sleep(0.1)  # Brief pause for UI update
                     st.rerun()
                 else:
                     st.session_state[f"{key}_status"] = "completed"

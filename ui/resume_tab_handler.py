@@ -34,36 +34,13 @@ class ResumeTabHandler:
         # Tech stack input
         st.markdown("#### 📝 Tech Stack & Points")
         
-        # Show supported formats
-        with st.expander("📋 Supported Input Formats", expanded=False):
-            st.markdown("""
-**Only these 3 formats are supported:**
-
-**Format 1: Tech Stack (no colon) + Tabbed Bullet Points**
-```
-Java
-•	Point with tab indentation
-•	Another point with tab
-•	Third point with tab
-```
-
-**Format 2: Tech Stack with Colon + Tabbed Bullet Points**
-```
-Java:
-•	Point with tab indentation
-•	Another point with tab
-•	Third point with tab
-```
-
-**Format 3: Tech Stack (no colon) + Regular Bullet Points**
-```
-Java
-• Point with regular bullet (no tab)
-• Another point with regular bullet
-• Third point with regular bullet
-```
-
-**Note:** You can mix different formats in the same input.
+        # Show supported formats (cached for performance)
+        if st.checkbox("📋 Show Input Format Guide", help="View supported formats"):
+            st.info("""
+**3 Supported Formats:**
+1. **Tech Stack** + tabbed bullets (•\tpoint)
+2. **Tech Stack:** + tabbed bullets (•\tpoint)  
+3. **Tech Stack** + regular bullets (• point)
             """)
         
         st.warning("⚠️ Only the 3 formats above are accepted. Other formats will be rejected with detailed error messages.")
@@ -78,16 +55,17 @@ Java
         )
         file_data['text'] = text_input
         
-        # Manual points input (optional)
-        with st.expander("🔧 Manual Points Override (Optional)", expanded=False):
+        # Simplified manual points input
+        if st.checkbox("🔧 Manual Points Override", key=f"show_manual_{unique_key}"):
             manual_text = st.text_area(
-                "Manual points (overrides parsed points):",
+                "Manual points (one per line):",
                 value=file_data.get('manual_text', ''),
-                height=100,
-                help="Enter specific points to add, one per line",
+                height=80,
                 key=f"manual_points_{unique_key}"
             )
             file_data['manual_text'] = manual_text
+        else:
+            file_data['manual_text'] = file_data.get('manual_text', '')
         
         # Email configuration
         st.markdown("#### 📧 Email Configuration (Optional)")
@@ -161,19 +139,11 @@ Java
         col1, col2 = st.columns(2)
         
         with col1:
-            # Throttle preview button: disable for 1s after click
+            # Optimized preview button (no throttling for better UX)
             preview_key = f"preview_{unique_key}"
-            if 'preview_cooldown' not in st.session_state:
-                st.session_state['preview_cooldown'] = {}
-            cooldown = st.session_state['preview_cooldown'].get(preview_key, 0)
-            import time as _time
-            now = _time.time()
-            if now > cooldown:
-                if st.button("🔍 Preview Changes", key=preview_key):
-                    st.session_state['preview_cooldown'][preview_key] = now + 1.0  # 1 second cooldown
-                    self.handle_preview(file, text_input, manual_text)
-            else:
-                st.button("🔍 Preview Changes (Wait)", key=preview_key+"_wait", disabled=True)
+            if st.button("🔍 Preview Changes", key=preview_key):
+                manual_text = file_data.get('manual_text', '')
+                self.handle_preview(file, text_input, manual_text)
         
         with col2:
             # Check if async processing is potentially available

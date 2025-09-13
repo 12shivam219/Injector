@@ -188,6 +188,17 @@ def get_cached_secure_ui_components():
     """Get cached secure UI components."""
     return get_secure_ui_components()
 
+@st.cache_data(ttl=600)  # Cache for 10 minutes
+def get_cached_tab_labels():
+    """Get cached tab labels to avoid repeated creation."""
+    return [
+        "📄 Resume Customizer", 
+        "📤 Bulk Processor", 
+        "📋 Requirements",
+        "📚 Know About The Application",
+        "⚙️ Settings"
+    ]
+
 @st.cache_data
 def get_default_session_state():
     """Get default session state configuration."""
@@ -547,14 +558,8 @@ def main():
     # Add visual separator
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Create tabs first
-    tab_labels = [
-        "📄 Resume Customizer", 
-        "📤 Bulk Processor", 
-        "📋 Requirements",
-        "📚 Know About The Application",
-        "⚙️ Settings"
-    ]
+    # Use cached tab labels for better performance
+    tab_labels = get_cached_tab_labels().copy()  # Copy to allow modification
     if st.session_state.get('show_preview_all_tab') and st.session_state.get('all_resume_previews'):
         tab_labels.insert(1, "👁️ Preview ALL")
     
@@ -596,48 +601,34 @@ def main():
     tab_settings = tabs[tab_idx]
 
     with tab_customizer:
-        # Enhanced Resume Customizer Tab with modern layout
-        with st.container():
-            # Sidebar components in organized container
-            ui.render_sidebar()
-            secure_ui.display_security_status()
-            
-            # Display logs in sidebar with fallback
-            try:
-                from infrastructure.utilities.logger import display_logs_in_sidebar
-                display_logs_in_sidebar()
-            except ImportError:
-                pass  # Logs display not available
-            
-            # Add performance dashboard
-            if PROGRESSIVE_LOADER_AVAILABLE:
-                render_performance_dashboard()
-            else:
+        # Optimized Resume Customizer Tab - lazy load sidebar components
+        # Only render sidebar once per session
+        if 'sidebar_rendered' not in st.session_state:
+            with st.container():
+                ui.render_sidebar()
+                secure_ui.display_security_status()
+                
+                # Add About button in sidebar
                 with st.sidebar:
-                    st.info("📊 Performance dashboard not available")
-            
-            # Add About button in sidebar
-            with st.sidebar:
-                st.markdown("---")
-                if st.button("ℹ️ About This Application", key="about_app_button", help="Learn more about the application"):
-                    st.session_state.redirect_to_about = True
-                    st.rerun()
-            
-            # Add async progress tracking to sidebar
+                    st.markdown("---")
+                    if st.button("ℹ️ About This Application", key="about_app_button", help="Learn more about the application"):
+                        st.session_state.redirect_to_about = True
+                        st.rerun()
+                
+                st.session_state.sidebar_rendered = True
+        
+        # Quick async progress tracking without heavy operations
+        try:
             track_async_progress()
+        except Exception:
+            pass
         
         # Main content area with better organization
         with st.container():
             st.markdown("### 📁 File Upload & Processing")
         
-        # Enhanced file upload section with modern layout
-        with st.expander("📂 File Source Selection", expanded=True):
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                st.markdown("**Choose your file source:**")
-                file_source = st.radio("Select file source", ["Local Upload", "Google Drive"], horizontal=True)
-            with col2:
-                st.info("💡 **Tip:** Use Google Drive for cloud files")
+        # Optimized file upload section
+        file_source = st.radio("📂 File Source:", ["Local Upload", "Google Drive"], horizontal=True)
         all_files = []
         
         if file_source == "Local Upload":
@@ -655,7 +646,7 @@ def main():
                     progress_bar.progress(progress)
                     status_text.text(f"Processing {file.name}... ({i+1}/{len(uploaded_files)})")
                     all_files.append((file.name, file))
-                    time.sleep(0.1)  # Brief delay for visual feedback
+                    # Removed unnecessary delay for better performance
                 
                 progress_bar.empty()
                 status_text.empty()
@@ -715,7 +706,7 @@ def main():
                             overall_progress.progress(progress)
                             status_text.text(f"Validating {file_name}... ({i+1}/{len(all_files)})")
                             file_statuses[file_name].text("✅ Valid")
-                            time.sleep(0.2)  # Visual feedback delay
+                            # Removed delay for faster validation
                         
                         # Clear progress indicators
                         overall_progress.empty()
@@ -894,7 +885,7 @@ def main():
                         progress = (i + 1) / len(uploaded_files)
                         overall_progress.progress(progress)
                         status_text.text(f"Processing {file.name}... ({i+1}/{len(uploaded_files)})")
-                        time.sleep(0.3)  # Simulate processing time
+                        # Removed simulation delay for real-time processing
                     
                     overall_progress.progress(1.0)
                     status_text.text("✅ All files processed successfully!")
@@ -985,11 +976,11 @@ def main():
                 # Performance test button
                 if st.button("🧪 Run Performance Test"):
                     with st.spinner("🔬 Testing performance..."):
-                        # Simulate performance test
+                        # Fast performance test
                         progress_bar = st.progress(0)
-                        for i in range(100):
-                            progress_bar.progress((i + 1) / 100)
-                            time.sleep(0.01)
+                        for i in range(10):  # Reduced iterations for speed
+                            progress_bar.progress((i + 1) / 10)
+                            # Removed delay for instant feedback
                         
                         progress_bar.empty()
                         st.toast("🎯 Performance test completed! System running at optimal speed.", icon="⚡")
@@ -1066,7 +1057,7 @@ def main():
                                 progress = (i + 1) / len(cleanup_steps)
                                 progress_bar.progress(progress)
                                 status_text.text(step)
-                                time.sleep(0.5)
+                                # Removed delay for instant cleanup
                                 
                                 # Actual cleanup operations
                                 if i == 1:  # Memory optimization
@@ -1122,8 +1113,7 @@ def main():
                         progress_bar.progress(progress)
                         status_text.text(f"{description}...")
                         
-                        # Simulate health check
-                        time.sleep(0.3)
+                        # Fast health check
                         results[component] = "✅ Healthy" if i < 4 else "⚠️ Slow"
                     
                     progress_bar.empty()
