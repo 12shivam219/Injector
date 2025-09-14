@@ -128,7 +128,7 @@ class ResumeCustomization(BaseModel):
             name='valid_customization_status'
         ),
         CheckConstraint(
-            user_rating >= 1 and user_rating <= 5,
+            '(user_rating >= 1 AND user_rating <= 5) OR user_rating IS NULL',
             name='valid_user_rating'
         ),
         Index('idx_customization_job', job_title, company_name),
@@ -241,7 +241,7 @@ class ProcessingLog(BaseModel):
     stack_trace = Column(Text)
     
     # Additional metadata
-    metadata = Column(JSONB, default=dict)
+    log_metadata = Column(JSONB, default=dict)
     
     # Relationships
     resume_document = relationship("ResumeDocument", back_populates="processing_logs")
