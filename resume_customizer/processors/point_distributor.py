@@ -33,14 +33,24 @@ class PointDistributor:
         """
         result = DistributionResult()
         
+        # Debug logging
+        logger.debug(f"distribute_points called with {len(projects)} projects and tech_stacks_data type: {type(tech_stacks_data)}")
+        logger.debug(f"Projects: {[p.get('title', p.get('name', 'Unknown')) for p in projects]}")
+        
         # Normalize tech stacks data
         tech_stacks = self._normalize_tech_stacks(tech_stacks_data)
+        logger.debug(f"Normalized tech_stacks: {list(tech_stacks.keys()) if tech_stacks else 'Empty'}")
+        
         if not tech_stacks:
+            logger.warning("No tech stacks data available for distribution")
             return result
         
         # Limit to top 3 projects or all if less than 3
         top_projects = projects[:3] if len(projects) > 3 else projects
+        logger.debug(f"Using {len(top_projects)} projects for distribution")
+        
         if not top_projects:
+            logger.warning("No projects available for distribution")
             return result
         
         # Calculate distribution
@@ -48,8 +58,9 @@ class PointDistributor:
         
         # Prepare result
         for i, project in enumerate(top_projects):
-            project_name = project.get('name', f'Project {i+1}')
+            project_name = project.get('title', project.get('name', f'Project {i+1}'))
             result.distribution[project_name] = distribution.get(i, [])
+            logger.debug(f"Assigned {len(distribution.get(i, []))} points to project '{project_name}'")
         
         # Track all points and unused points
         all_points = []
@@ -60,6 +71,7 @@ class PointDistributor:
         result.unused_points = [p for p in all_points if p not in used_points]
         result.all_points = all_points
         
+        logger.info(f"Successfully distributed {len(used_points)} points across {len(result.distribution)} projects")
         return result
     
     def _normalize_tech_stacks(self, tech_stacks_data: Any) -> Dict[str, List[Dict[str, Any]]]:
