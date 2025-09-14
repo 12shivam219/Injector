@@ -7,11 +7,17 @@ import re
 from typing import List, Tuple, Optional, Dict
 from functools import lru_cache
 from config import PARSING_CONFIG
+import logging
 from infrastructure.utilities.logger import get_logger
 # Removed performance monitoring imports
 from infrastructure.security.security_enhancements import InputSanitizer
 
-logger = get_logger()
+# Initialize logger with fallback
+try:
+    logger = get_logger()
+except Exception:
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
 
 
 class TechStackParser:

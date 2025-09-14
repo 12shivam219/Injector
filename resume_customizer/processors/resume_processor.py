@@ -21,6 +21,7 @@ import streamlit as st
 # Local imports
 from audit_logger import audit_logger
 from infrastructure.utilities.logger import get_logger
+import logging
 from ..parsers.text_parser import parse_input_text, LegacyParser, get_parser
 from ..parsers.restricted_text_parser import parse_input_text_restricted, RestrictedFormatError
 from .document_processor import get_document_processor, FileProcessor
@@ -30,7 +31,7 @@ class ResumeManager:
     """Manages resume processing operations."""
     _instance = None
     _lock = threading.Lock()
-
+    
     def __new__(cls):
         if cls._instance is None:
             with cls._lock:
@@ -41,6 +42,12 @@ class ResumeManager:
     def __init__(self):
         if not hasattr(self, '_initialized'):
             self._initialized = True
+            # Initialize logger for this instance
+            try:
+                self.logger = get_logger()
+            except Exception:
+                self.logger = logging.getLogger(__name__)
+                self.logger.setLevel(logging.INFO)
             self.document_processor = get_document_processor()
             self.email_manager = get_email_manager()
             self.progress_tracker = get_progress_tracker()
@@ -177,7 +184,12 @@ except ImportError:
             def track_progress(self, *args, **kwargs): pass
         return ProgressTracker()
 
-logger = get_logger()
+# Initialize logger with fallback
+try:
+    logger = get_logger()
+except Exception:
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
 
 # Constants
 CACHE_TTL_SECONDS = 300  # 5 minutes
@@ -220,11 +232,13 @@ def profile_step(step_name: str):
                 result = func(*args, **kwargs)
                 duration = time.time() - start
                 if duration > 1.0:  # Log only slow steps (>1s)
-                    logger.info(f"[PROFILE] {step_name} took {duration:.2f}s")
+                    # Use print for profiling info since this is outside class context
+                    print(f"[PROFILE] {step_name} took {duration:.2f}s")
                 return result
             except Exception as e:
                 duration = time.time() - start
-                logger.error(f"[PROFILE] {step_name} failed after {duration:.2f}s: {e}")
+                # Use print for profiling error since this is outside class context
+                print(f"[PROFILE] {step_name} failed after {duration:.2f}s: {e}")
                 raise
         return wrapper
     return decorator
@@ -288,7 +302,8 @@ def _process_single_resume_worker(payload: Dict[str, Any]) -> ProcessingResult:
         return result
         
     except Exception as e:
-        logger.error(f"Worker error processing {filename}: {e}")
+        # Use print for worker error since this is outside class context
+        print(f"Worker error processing {filename}: {e}")
         return ProcessingResult(
             success=False,
             filename=filename,
@@ -506,7 +521,8 @@ class RobustResumeProcessor:
                     raise
                     
         except Exception as e:
-            logger.error(f"Robust processing failed: {str(e)}")
+            # Use print for robust processing error since this is outside class context
+            print(f"Robust processing failed: {str(e)}")
             if error_context:
                 error_context.details["final_error"] = str(e)
             raise
@@ -544,7 +560,8 @@ class RobustResumeProcessor:
                 try:
                     task(*args, **kwargs)
                 except Exception as e:
-                    logger.error(f"Background task error: {e}")
+                    # Use print for background task error since this is outside class context
+                    print(f"Background task error: {e}")
             except Exception:
                 pass
         
@@ -569,7 +586,7 @@ class RobustResumeProcessor:
         cache_key = f"{file_data['filename']}|{file_data.get('text','')}|{file_data.get('manual_text','')}"
         with self._cache_lock:
             if cache_key in self._result_cache:
-                logger.info(f"[CACHE] Hit for {file_data['filename']}")
+                self.logger.info(f"[CACHE] Hit for {file_data['filename']}")
                 return self._result_cache[cache_key]
         try:
             filename = file_data['filename']
@@ -634,7 +651,7 @@ class RobustResumeProcessor:
             
             # Detect document-wide bullet marker for consistency
             document_marker = self.doc_processor.bullet_formatter.detect_document_bullet_marker(doc)
-            logger.info(f"Document bullet marker detected: '{document_marker}'")
+            self.logger.info(f"Document bullet marker detected: '{document_marker}'")
             
             projects_data = self.doc_processor.project_detector.find_projects(doc)
             if not projects_data:
@@ -683,12 +700,8 @@ class RobustResumeProcessor:
                 if project and points:
                     added = self.doc_processor._add_points_to_project(doc, project, points, document_marker)
                     total_added += added
-                    logger.debug(f"Added {added} points to project '{project_name}' with marker '{document_marker}'")
+                    self.logger.debug(f"Added {added} points to project '{project_name}' with marker '{document_marker}'")
             
-            points_added = total_added
-                total_added += added
-                # Update the offset for subsequent projects
-                paragraph_offset += added
             points_added = total_added
             if progress_callback:
                 progress_callback(f"Saving document for {filename}...")
@@ -721,7 +734,7 @@ class RobustResumeProcessor:
                     return self.process_single_resume(file_data, progress_callback)
                 except Exception:
                     continue
-            logger.error(f"Error processing resume {file_data.get('filename','?')}: {e}")
+            self.logger.error(f"Error processing resume {file_data.get('filename','?')}: {e}")
             result = {'success': False, 'filename': file_data.get('filename', '?'), 'error': str(e)}
             audit_logger.log(
                 action="process_single_resume",

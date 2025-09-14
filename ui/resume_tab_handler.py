@@ -4,9 +4,15 @@ import base64
 import hashlib
 
 from infrastructure.security.validators import TextValidator
+import logging
 from infrastructure.utilities.logger import get_logger
 
-logger = get_logger()
+# Initialize logger with fallback
+try:
+    logger = get_logger()
+except Exception:
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
 
 class ResumeTabHandler:
     """Handles individual resume tab functionality."""

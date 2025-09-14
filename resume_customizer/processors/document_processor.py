@@ -9,14 +9,25 @@ from io import BytesIO
 from docx import Document
 from docx.text.paragraph import Paragraph
 
+import logging
 from infrastructure.utilities.logger import get_logger
 from infrastructure.utilities.structured_logger import get_structured_logger
 from ..detectors.project_detector import ProjectDetector, ProjectInfo
 from ..formatters.bullet_formatter import BulletFormatter, BulletFormatting
 from .point_distributor import PointDistributor
 
-logger = get_logger()
-structured_logger = get_structured_logger("document_processor")
+# Initialize logger with fallback
+try:
+    logger = get_logger()
+except Exception:
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+
+try:
+    structured_logger = get_structured_logger("document_processor")
+except Exception:
+    structured_logger = logging.getLogger("document_processor")
+    structured_logger.setLevel(logging.INFO)
 
 
 class DocumentProcessor:

@@ -6,8 +6,17 @@ from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 from docx.document import Document as DocumentType
 from docx.text.paragraph import Paragraph
+import logging
+from infrastructure.utilities.logger import get_logger
 
 from .base_formatters import DocumentFormatter, ListFormatterMixin
+
+# Initialize logger with fallback
+try:
+    logger = get_logger()
+except Exception:
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
 
 @dataclass
 class BulletFormatting:

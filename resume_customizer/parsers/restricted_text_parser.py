@@ -5,10 +5,16 @@ Only accepts 3 specific formats as defined by user requirements.
 
 import re
 from typing import List, Tuple, Optional, Dict
+import logging
 from infrastructure.utilities.logger import get_logger
 from infrastructure.security.security_enhancements import InputSanitizer
 
-logger = get_logger()
+# Initialize logger with fallback
+try:
+    logger = get_logger()
+except Exception:
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
 
 
 class RestrictedFormatError(Exception):
