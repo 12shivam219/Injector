@@ -48,6 +48,7 @@ if app_initialized:
             show_debug = st.checkbox(
                 "🐛 Show Debug Information",
                 value=ui_prefs.get('show_debug', False),
+                key="settings_show_debug",
                 help="Display additional debug information in the interface"
             )
             ui_prefs['show_debug'] = show_debug
@@ -56,6 +57,7 @@ if app_initialized:
             auto_save = st.checkbox(
                 "💾 Auto-save Form Data",
                 value=ui_prefs.get('auto_save', True),
+                key="settings_auto_save",
                 help="Automatically save form data as you type"
             )
             ui_prefs['auto_save'] = auto_save
@@ -75,6 +77,7 @@ if app_initialized:
             show_progress = st.checkbox(
                 "📊 Show Detailed Progress",
                 value=ui_prefs.get('show_progress', True),
+                key="settings_show_progress",
                 help="Display detailed progress information during processing"
             )
             ui_prefs['show_progress'] = show_progress
@@ -83,6 +86,7 @@ if app_initialized:
             email_notifications = st.checkbox(
                 "📧 Email Notifications",
                 value=ui_prefs.get('email_notifications', True),
+                key="settings_email_notifications",
                 help="Receive email notifications for completed operations"
             )
             ui_prefs['email_notifications'] = email_notifications
@@ -107,6 +111,7 @@ if app_initialized:
                 use_async = st.checkbox(
                     "⚡ Enable Async Processing",
                     value=perf_settings.get('use_async', True),
+                    key="settings_use_async",
                     help="Use asynchronous processing for better performance"
                 )
                 perf_settings['use_async'] = use_async
@@ -127,6 +132,7 @@ if app_initialized:
             enable_cache = st.checkbox(
                 "💾 Enable Caching",
                 value=perf_settings.get('enable_cache', True),
+                key="settings_enable_cache",
                 help="Cache processed data for faster subsequent operations"
             )
             perf_settings['enable_cache'] = enable_cache
@@ -136,6 +142,7 @@ if app_initialized:
             memory_optimization = st.checkbox(
                 "🧹 Memory Optimization",
                 value=perf_settings.get('memory_optimization', True),
+                key="settings_memory_optimization",
                 help="Automatically clean up memory during processing"
             )
             perf_settings['memory_optimization'] = memory_optimization
@@ -192,6 +199,7 @@ if app_initialized:
             rate_limiting = st.checkbox(
                 "🛡️ Enable Rate Limiting",
                 value=security_settings.get('rate_limiting', True),
+                key="settings_rate_limiting",
                 help="Limit the number of requests per time window"
             )
             security_settings['rate_limiting'] = rate_limiting
@@ -210,6 +218,7 @@ if app_initialized:
             strict_validation = st.checkbox(
                 "✅ Strict Input Validation",
                 value=security_settings.get('strict_validation', True),
+                key="settings_strict_validation",
                 help="Enable strict validation of all user inputs"
             )
             security_settings['strict_validation'] = strict_validation
@@ -229,6 +238,7 @@ if app_initialized:
             scan_uploads = st.checkbox(
                 "🔍 Scan File Uploads",
                 value=security_settings.get('scan_uploads', True),
+                key="settings_scan_uploads",
                 help="Scan uploaded files for security threats"
             )
             security_settings['scan_uploads'] = scan_uploads
@@ -237,6 +247,7 @@ if app_initialized:
             require_strong_passwords = st.checkbox(
                 "🔐 Require Strong Passwords",
                 value=security_settings.get('require_strong_passwords', True),
+                key="settings_require_strong_passwords",
                 help="Enforce strong password requirements for email accounts"
             )
             security_settings['require_strong_passwords'] = require_strong_passwords

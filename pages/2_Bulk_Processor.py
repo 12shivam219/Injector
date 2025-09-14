@@ -109,6 +109,7 @@ if app_initialized:
                 show_progress = st.checkbox(
                     "📊 Show Detailed Progress", 
                     value=True,
+                    key="bulk_page_show_progress",
                     help="Display real-time progress updates"
                 )
             
@@ -116,12 +117,14 @@ if app_initialized:
                 performance_stats = st.checkbox(
                     "📈 Performance Statistics", 
                     value=False,
+                    key="bulk_page_performance_stats",
                     help="Show detailed performance metrics"
                 )
                 
                 bulk_email_mode = st.selectbox(
                     "📧 Email Mode",
                     ["No emails", "Send emails in parallel", "Generate only"],
+                    index=1,
                     help="Choose how to handle email sending"
                 )
             

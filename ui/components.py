@@ -369,6 +369,7 @@ class UIComponents:
                 show_progress = st.checkbox(
                     "📊 Show Real-time Progress",
                     value=True,
+                    key="bulk_show_progress",
                     help="Display progress updates (may slow down slightly)"
                 )
         

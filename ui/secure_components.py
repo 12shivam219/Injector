@@ -287,7 +287,7 @@ class SecureUIComponents:
                     st.metric("Blocked Requests", blocked_requests)
                 
                 # Rate limit details
-                if st.checkbox("Show Rate Limit Details"):
+                if st.checkbox("Show Rate Limit Details", key="show_rate_limit_details"):
                     for limit_key, timestamps in rate_limits.items():
                         if len(timestamps) > 0:
                             st.write(f"**{limit_key}**: {len(timestamps)} requests")

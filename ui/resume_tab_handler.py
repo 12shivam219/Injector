@@ -39,7 +39,7 @@ class ResumeTabHandler:
         st.markdown("#### 📝 Tech Stack & Points")
         
         # Show supported formats (cached for performance)
-        if st.checkbox("📋 Show Input Format Guide", help="View supported formats"):
+        if st.checkbox("📋 Show Input Format Guide", key=f"show_input_format_guide_{unique_key}", help="View supported formats"):
             st.info("""
 **3 Supported Formats:**
 1. **Tech Stack** + tabbed bullets (•\tpoint)

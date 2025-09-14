@@ -776,7 +776,7 @@ def render_requirements_list(requirements_manager: RequirementsManager):
         
         if uploaded_file:
             import_data = uploaded_file.read().decode('utf-8')
-            merge_option = st.checkbox("Merge with existing (otherwise replace all)", value=True)
+            merge_option = st.checkbox("Merge with existing (otherwise replace all)", value=True, key="merge_requirements_option")
             
             if st.button("📅 Import Requirements"):
                 success = requirements_manager.import_requirements(import_data, merge=merge_option)
