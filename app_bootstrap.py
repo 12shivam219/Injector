@@ -16,7 +16,11 @@ from infrastructure.utilities.structured_logger import get_structured_logger
 APP_CONFIG = {
     "title": "Resume Customizer",
     "layout": "wide", 
-    "version": "2.0.0"
+    "version": "2.0.0",
+    "services_enabled": True,
+    "async_enabled": True,
+    "monitoring_enabled": True,
+    "debug_mode": False
 }
 
 def initialize_app():
@@ -37,9 +41,20 @@ def initialize_app():
     # Initialize session state
     initialize_session_state()
     
+    # Cache services
+    st.session_state.services = get_cached_services()
+    
     # Initialize logging
     logger = get_logger()
-    logger.info("Application bootstrap completed")
+    
+    # Check bootstrap status
+    from infrastructure.utilities.bootstrap_check import check_bootstrap_status
+    is_ready, status = check_bootstrap_status()
+    
+    if is_ready:
+        logger.info("Application bootstrap completed successfully")
+    else:
+        logger.error("Application bootstrap incomplete", extra={"status": status})
 
 def initialize_session_state():
     """Initialize session state variables with defaults."""
@@ -89,11 +104,33 @@ def get_cached_services() -> Dict[str, Any]:
     """Get cached instances of all services."""
     services = {}
     
-    # UI Components
     try:
+        # UI Components
         from ui.components import UIComponents
         services['ui_components'] = UIComponents()
+        
+        # Resume Manager
+        from resume_customizer.processors.resume_processor import ResumeProcessor
+        services['resume_processor'] = ResumeProcessor()
+        
+        # Requirements Manager
+        from database.requirements_manager_db import RequirementsManager
+        services['requirements_manager'] = RequirementsManager()
+        
+        # Analytics Manager
+        from infrastructure.monitoring.analytics import AnalyticsManager
+        services['analytics'] = AnalyticsManager()
+        
+        # Bulk Processor
+        from resume_customizer.processors.bulk_processor import BulkProcessor
+        services['bulk_processor'] = BulkProcessor()
+        
+        return services
+        
     except ImportError as e:
+        logging.error(f"Failed to initialize services: {str(e)}")
+        st.error("❌ Failed to initialize required services. Check logs for details.")
+        return {}
         services['ui_components'] = None
         logging.warning(f"Could not load UI components: {e}")
     
@@ -109,7 +146,12 @@ def get_cached_services() -> Dict[str, Any]:
     try:
         from ui.resume_tab_handler import ResumeTabHandler
         from resume_customizer.processors.resume_processor import get_resume_manager
-        services['resume_tab_handler'] = ResumeTabHandler(resume_manager=get_resume_manager("v2.2"))
+        resume_manager = get_resume_manager("v2.2")
+        if resume_manager:
+            services['resume_tab_handler'] = ResumeTabHandler(resume_manager=resume_manager)
+        else:
+            services['resume_tab_handler'] = None
+            logging.warning("Resume manager initialization failed")
     except ImportError as e:
         services['resume_tab_handler'] = None
         logging.warning(f"Could not load resume tab handler: {e}")

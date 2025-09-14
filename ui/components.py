@@ -22,6 +22,70 @@ logger = get_logger()
 class UIComponents:
     """Handles UI component rendering and interactions with enhanced UX."""
     
+    def render_sidebar(self):
+        """Render the sidebar components."""
+        with st.sidebar:
+            st.markdown("### 🛠️ Quick Actions")
+            
+            # Settings section
+            st.markdown("#### ⚙️ Settings")
+            theme = st.selectbox(
+                "🎨 Theme:",
+                ["Light", "Dark"],
+                key="theme_selector",
+                help="Choose the application theme"
+            )
+            
+            # Performance options
+            st.markdown("#### 🚀 Performance")
+            st.checkbox(
+                "Enable async processing",
+                value=st.session_state.get('async_initialized', False),
+                key="async_enabled",
+                help="Enable asynchronous file processing"
+            )
+            
+            # Display options
+            st.markdown("#### 👁️ Display")
+            st.checkbox(
+                "Show debug info",
+                value=st.session_state.get('show_debug', False),
+                key="show_debug",
+                help="Show additional debugging information"
+            )
+            
+            # Help section
+            st.markdown("#### ℹ️ Help")
+            if st.button("📚 View Documentation"):
+                st.session_state.current_page = "guide"
+                st.rerun()
+    
+    def render_file_upload(self, key: str, allowed_types: Optional[List[str]] = None) -> List[Any]:
+        """Render a file upload component with improved UX."""
+        if allowed_types is None:
+            allowed_types = ['docx']
+            
+        help_text = f"Allowed file types: {', '.join(allowed_types)}"
+        file_types = [f".{ext}" for ext in allowed_types]
+        
+        uploaded_files = st.file_uploader(
+            "Choose resume file(s)",
+            type=file_types,
+            accept_multiple_files=True,
+            help=help_text,
+            key=key
+        )
+        
+        # Show upload status
+        if uploaded_files:
+            st.success(f"✅ {len(uploaded_files)} file(s) uploaded successfully!")
+            
+            # Show file details
+            for file in uploaded_files:
+                st.info(f"📄 {file.name} ({file.size} bytes)")
+        
+        return uploaded_files or []
+    
     @staticmethod
     @st.cache_data
     def get_sidebar_config():

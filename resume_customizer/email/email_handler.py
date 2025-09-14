@@ -21,8 +21,8 @@ from infrastructure.utilities.retry_handler import get_retry_handler, with_retry
 from infrastructure.utilities.logger import get_logger
 from infrastructure.security.security_enhancements import SecurePasswordManager, InputSanitizer, rate_limit
 # Removed circuit breaker import - monitoring disabled
-from enhancements.metrics_analytics_enhanced import record_email_sent
-from enhancements.email_templates_enhanced import get_template_manager
+from infrastructure.monitoring.analytics import get_analytics_manager
+from infrastructure.monitoring.email_templates import get_template_manager
 
 
 logger = get_logger()

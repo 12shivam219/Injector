@@ -11,11 +11,15 @@ logger = get_logger()
 class ResumeTabHandler:
     """Handles individual resume tab functionality."""
     
-    def __init__(self, resume_manager):
+    def __init__(self, resume_manager=None):
         self.resume_manager = resume_manager
 
     def render_tab(self, file):
         """Render the tab content for a single resume file."""
+        if self.resume_manager is None:
+            st.error("⚠️ Resume processing is not available. Please check the application configuration.")
+            return
+            
         from config import get_default_email_subject, get_default_email_body, get_smtp_servers
         
         # Create unique identifier for this file instance

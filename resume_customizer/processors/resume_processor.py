@@ -25,6 +25,73 @@ from ..parsers.text_parser import parse_input_text, LegacyParser, get_parser
 from ..parsers.restricted_text_parser import parse_input_text_restricted, RestrictedFormatError
 from .document_processor import get_document_processor, FileProcessor
 from ..email.email_handler import get_email_manager
+
+class ResumeManager:
+    """Manages resume processing operations."""
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if not hasattr(self, '_initialized'):
+            self._initialized = True
+            self.document_processor = get_document_processor()
+            self.email_manager = get_email_manager()
+            self.progress_tracker = get_progress_tracker()
+            self.error_recovery = get_error_recovery_manager()
+
+    def process_resume(self, file_content: BytesIO, tech_stack: str) -> BytesIO:
+        """Process a single resume file."""
+        try:
+            # Track progress
+            if self.progress_tracker:
+                self.progress_tracker.start_task(
+                    "resume_processing",
+                    "Processing resume",
+                    total=100
+                )
+
+            # Parse tech stack
+            parsed_points = parse_input_text_restricted(tech_stack)
+            
+            # Process document
+            processed_doc = self.document_processor.process_document(
+                file_content,
+                parsed_points
+            )
+
+            # Record metrics
+            record_metrics('resume_processed', 1, {'status': 'success'})
+
+            return processed_doc
+
+        except Exception as e:
+            record_metrics('resume_processed', 1, {'status': 'failed'})
+            raise
+
+    def send_email(self, to_email: str, subject: str, body: str, attachment: BytesIO):
+        """Send processed resume via email."""
+        return self.email_manager.send_email(to_email, subject, body, attachment)
+
+_resume_manager_instance = None
+_resume_manager_lock = threading.Lock()
+
+def get_resume_manager(version: str = "v2.0") -> ResumeManager:
+    """Get the singleton instance of ResumeManager."""
+    global _resume_manager_instance
+    
+    if _resume_manager_instance is None:
+        with _resume_manager_lock:
+            if _resume_manager_instance is None:
+                _resume_manager_instance = ResumeManager()
+    
+    return _resume_manager_instance
 try:
     from config import ERROR_MESSAGES, SUCCESS_MESSAGES, APP_CONFIG
 except ImportError:
@@ -43,26 +110,67 @@ try:
 except ImportError:
     processing_logger = get_structured_logger("processing")
     
-from enhancements.error_handling_enhanced import handle_errors, ErrorSeverity, ErrorHandlerContext
+from infrastructure.error_handling import ErrorHandler, ErrorContext, ErrorSeverity
 # Removed circuit breaker import - monitoring disabled
 
 try:
-    from enhancements.enhanced_error_recovery import RobustResumeProcessor, get_error_recovery_manager
+    from infrastructure.error_handling.recovery import ErrorRecoveryManager, get_error_recovery_manager
 except ImportError:
-    class RobustResumeProcessor:
+    class ErrorRecoveryManager:
         def __init__(self): pass
     def get_error_recovery_manager(): return None
     
-# Removed distributed cache import - monitoring disabled
-
 try:
-    from enhancements.metrics_analytics_enhanced import record_resume_processed, record_metrics
+    from infrastructure.monitoring.analytics import get_analytics_manager
+    from infrastructure.monitoring.metrics import MetricType
+    def record_metrics(category, **metric_kwargs):
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                analytics = get_analytics_manager()
+                start_time = time.time()
+                try:
+                    result = func(*args, **kwargs)
+                    if analytics:
+                        analytics.record_metric(
+                            category,
+                            'success',
+                            1,
+                            tags={'status': 'success', **metric_kwargs}
+                        )
+                    return result
+                except Exception as e:
+                    if analytics:
+                        analytics.record_metric(
+                            category,
+                            'error',
+                            1,
+                            tags={'status': 'error', 'error_type': type(e).__name__, **metric_kwargs}
+                        )
+                    raise
+                finally:
+                    if analytics:
+                        duration = time.time() - start_time
+                        analytics.record_metric(
+                            f"{category}.duration",
+                            None,
+                            duration,
+                            metric_type=MetricType.TIMER,
+                            tags=metric_kwargs
+                        )
+            return wrapper
+        return decorator
 except ImportError:
-    def record_resume_processed(*args, **kwargs): pass
-    def record_metrics(*args, **kwargs): pass
+    def record_metrics(category, **metric_kwargs):
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                return func(*args, **kwargs)
+            return wrapper
+        return decorator
     
 try:
-    from enhancements.progress_tracker_enhanced import get_progress_tracker
+    from infrastructure.monitoring.progress import get_progress_tracker
 except ImportError:
     def get_progress_tracker(): 
         class ProgressTracker:
@@ -354,6 +462,63 @@ class ResumeProcessor:
         return results
     """Main processor for individual resume operations."""
     
+class RobustResumeProcessor:
+    """Enhanced resume processor with robust error handling and recovery."""
+    
+    def __init__(self):
+        self.text_parser = get_parser()
+        self.doc_processor = get_document_processor()
+        self.error_recovery = get_error_recovery_manager()
+        self._metrics = get_analytics_manager()
+        self._retries = 0
+        self._max_retries = 3
+    
+    @record_metrics("robust_processing")
+    def process_with_recovery(self, content: BytesIO, tech_stack: str, 
+                            error_context: Optional[ErrorContext] = None) -> BytesIO:
+        """Process resume with error recovery mechanisms."""
+        try:
+            # Parse tech stack with fallback options
+            try:
+                parsed_points = parse_input_text_restricted(tech_stack)
+            except RestrictedFormatError:
+                # Fallback to legacy parser if restricted format fails
+                parsed_points = parse_input_text(tech_stack)
+            
+            # Process document with recovery
+            for attempt in range(self._max_retries):
+                try:
+                    processed_doc = self.doc_processor.process_document(
+                        content,
+                        parsed_points
+                    )
+                    return processed_doc
+                except Exception as e:
+                    if self.error_recovery and attempt < self._max_retries - 1:
+                        self.error_recovery.attempt_recovery(error_context or ErrorContext(
+                            severity=ErrorSeverity.MEDIUM,
+                            component="robust_processor",
+                            operation="process_document",
+                            details={"attempt": attempt + 1}
+                        ))
+                        self._retries += 1
+                        continue
+                    raise
+                    
+        except Exception as e:
+            logger.error(f"Robust processing failed: {str(e)}")
+            if error_context:
+                error_context.details["final_error"] = str(e)
+            raise
+
+    def get_processing_stats(self) -> Dict[str, Any]:
+        """Get processing statistics."""
+        return {
+            "retries": self._retries,
+            "success_rate": self._metrics.get_summary("robust_processing.success")
+                if self._metrics else None
+        }
+
     def __init__(self):
         self.text_parser = get_parser()
         self.doc_processor = get_document_processor()

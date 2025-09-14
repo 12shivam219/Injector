@@ -13,7 +13,7 @@ from docx import Document
 from config import DOC_CONFIG, PARSING_CONFIG
 from infrastructure.utilities.logger import get_logger
 # Removed performance monitoring imports
-from enhancements.error_handling_enhanced import handle_errors, ErrorSeverity, ErrorHandlerContext
+from infrastructure.error_handling import ErrorHandler, ErrorContext, ErrorSeverity
 from infrastructure.utilities.memory_optimizer import get_memory_optimizer, with_memory_management
 from resume_customizer.formatters.bullet_formatter import BulletFormatter, BulletFormatting
 
@@ -39,7 +39,7 @@ class DocumentFormatter:
     """Handles document formatting operations."""
     
     @staticmethod
-    @handle_errors("copy_paragraph_formatting", ErrorSeverity.MEDIUM, show_to_user=False)
+    @ErrorHandler.with_error_handling("copy_paragraph_formatting", ErrorSeverity.MEDIUM, show_to_user=False)
     def copy_paragraph_formatting(source_para, target_para) -> None:
         """
         Copy all formatting from source paragraph to target paragraph with error handling.

@@ -20,7 +20,7 @@ def test_imports():
     # Test resume customizer imports
     print("\n📦 Testing resume_customizer module:")
     try:
-        from resume_customizer import parse_input_text_restricted, RestrictedFormatError
+        from resume_customizer.parsers.text_parser import parse_input_text_restricted, RestrictedFormatError
         print("  ✅ parse_input_text_restricted imported successfully")
         tests_passed += 1
     except Exception as e:
