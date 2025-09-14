@@ -178,25 +178,17 @@ class BulletFormatter(DocumentFormatter, ListFormatterMixin):
             clean_text = self._clean_bullet_text(text)
             paragraph.clear()
             
-            # Get the bullet marker and separator from formatting
-            # Ensure we use the detected marker, not the default
-            bullet_marker = formatting.bullet_marker if formatting and formatting.bullet_marker else '-'
-            bullet_separator = formatting.bullet_separator if formatting and formatting.bullet_separator else ' '
-            
-            # Validate that we're using the correct marker (preserve detected marker)
+            # Get the bullet marker from formatting - preserve detected marker
+            bullet_marker = '-'  # Default fallback
             if formatting and formatting.bullet_marker:
-                bullet_marker = formatting.bullet_marker  # Explicitly preserve detected marker
+                bullet_marker = formatting.bullet_marker.strip()  # Clean any extra whitespace
             
-            # Clean the bullet marker to ensure consistency (remove extra spaces)
-            if bullet_marker and bullet_marker != bullet_marker.strip():
-                bullet_marker = bullet_marker.strip()
+            bullet_separator = formatting.bullet_separator if formatting and formatting.bullet_separator else ' '
             
             # Add text with proper bullet formatting
             formatted_text = f"{bullet_marker}{bullet_separator}{clean_text}"
             
-            # Debug logging to track bullet marker usage
-            print(f"DEBUG: apply_formatting using bullet marker: '{bullet_marker}', separator: '{bullet_separator}'")
-            print(f"DEBUG: Final formatted text: '{formatted_text[:50]}{'...' if len(formatted_text) > 50 else ''}'")
+            logger.debug(f"Applied formatting with marker: '{bullet_marker}', separator: '{bullet_separator}'")
             
             run = paragraph.add_run(formatted_text)
 
@@ -217,7 +209,7 @@ class BulletFormatter(DocumentFormatter, ListFormatterMixin):
 
         except Exception as e:
             # Fallback to basic formatting
-            print(f"DEBUG: apply_formatting failed, using fallback: {e}")
+            logger.warning(f"Formatting application failed, using fallback: {e}")
             self._apply_basic_formatting(paragraph, text, formatting)
     
     def _extract_list_format(self, paragraph: Paragraph) -> Dict[str, Any]:
@@ -292,17 +284,18 @@ class BulletFormatter(DocumentFormatter, ListFormatterMixin):
     
     def detect_document_bullet_marker(self, document: DocumentType) -> str:
         """
-        Detect the primary bullet marker used in the document - improved version
+        Detect the primary bullet marker used in the document with enhanced accuracy
         
         Args:
             document: The Word document to analyze
             
         Returns:
-            The detected bullet marker string (e.g., '- ', '• ')
+            The detected bullet marker string (e.g., '-', '•')
         """
         import re
         
         marker_counts = {}
+        bullet_point_count = 0
         
         # Scan all paragraphs for bullet patterns
         for paragraph in document.paragraphs:
@@ -310,25 +303,41 @@ class BulletFormatter(DocumentFormatter, ListFormatterMixin):
             
             if not text:
                 continue
-                
+            
+            # Skip headers and non-bullet content
+            if any(keyword in text.lower() for keyword in ['experience', 'education', 'skills', 'summary', 'objective']):
+                continue
+            
             # Check each bullet pattern
             for pattern in self.bullet_patterns:
                 match = re.match(pattern, text)
                 if match:
+                    bullet_point_count += 1
                     # Extract the actual marker used
-                    marker = match.group().strip() + ' '
+                    marker_with_space = match.group().strip()
+                    # Extract just the marker character without spacing
+                    marker = marker_with_space.rstrip(' \t')
+                    marker_counts[marker] = marker_counts.get(marker, 0) + 1
+                    break
+            
+            # Also check for direct marker detection
+            for marker in self.bullet_markers:
+                if text.startswith(marker + ' ') or text.startswith(marker + '\t'):
+                    bullet_point_count += 1
                     marker_counts[marker] = marker_counts.get(marker, 0) + 1
                     break
         
-        # Return the most common marker, or default if none found
+        # Return the most common marker
         if marker_counts:
             most_common_marker = max(marker_counts, key=marker_counts.get)
+            logger.debug(f"Detected bullet marker: '{most_common_marker}' (found {marker_counts[most_common_marker]} times out of {bullet_point_count} total bullets)")
             return most_common_marker
         
+        logger.debug(f"No bullet markers detected in document, using default: '{self.default_marker}'")
         return self.default_marker
     
     def _extract_bullet_marker(self, text: str) -> str:
-        """Extract the bullet marker from text - respect document consistency over priority."""
+        """Extract the bullet marker from text with improved accuracy."""
         import re
         
         text = text.strip()
@@ -337,19 +346,21 @@ class BulletFormatter(DocumentFormatter, ListFormatterMixin):
         for pattern in self.bullet_patterns:
             match = re.match(pattern, text)
             if match:
-                # Extract just the marker character, not the spacing
+                # Extract the marker character without spacing
                 marker_part = match.group().strip()
-                return marker_part if marker_part else '-'
+                # Remove any trailing spaces or tabs
+                clean_marker = marker_part.rstrip(' \t')
+                return clean_marker if clean_marker else '-'
         
-        # Check all possible bullet markers without priority bias (include dash variants)
+        # Direct marker detection - check all possible markers
         all_markers = ['•', '●', '◦', '▪', '▫', '‣', '*'] + self.dash_variants
         
-        # Find the first marker that matches (respect what's actually in the text)
+        # Find the marker that matches the text
         for marker in all_markers:
-            # Check for marker with separator
+            # Check for marker with space separator
             if text.startswith(marker + '\t') or text.startswith(marker + ' '):
                 return marker
-            # Check for marker without separator (tight formatting)
+            # Check for marker without separator
             elif text.startswith(marker) and len(text) > 1 and not text[1].isalnum():
                 return marker
                 
@@ -359,7 +370,7 @@ class BulletFormatter(DocumentFormatter, ListFormatterMixin):
                 if char in '.)': 
                     return text[:i+1]
         
-        return '•'  # Default to standard bullet only if nothing is found
+        return '-'  # Default to dash if nothing is found
     
     def _detect_bullet_separator(self, text: str) -> str:
         """Detect whether bullet uses tab or space separator."""
@@ -394,12 +405,10 @@ class BulletFormatter(DocumentFormatter, ListFormatterMixin):
                               formatting: Optional[BulletFormatting] = None) -> None:
         """Apply basic bullet formatting as a fallback."""
         try:
-            # CRITICAL: Ensure we preserve the detected marker even in fallback
-            marker = '-'  # Default to dash instead of bullet symbol
+            # Preserve the detected marker even in fallback
+            marker = '-'  # Default fallback
             if formatting and formatting.bullet_marker:
-                marker = formatting.bullet_marker  # Always use detected marker
-                # Clean the marker to ensure no extra spaces
-                marker = marker.strip() if marker else '-'
+                marker = formatting.bullet_marker.strip()  # Use detected marker, cleaned
             
             separator = formatting.bullet_separator if formatting and formatting.bullet_separator else ' '
             clean_text = self._clean_bullet_text(text)
@@ -409,11 +418,10 @@ class BulletFormatter(DocumentFormatter, ListFormatterMixin):
             formatted_text = f"{marker}{separator}{clean_text}"
             paragraph.add_run(formatted_text)
             
-            # Log the marker being used for debugging
-            print(f"DEBUG: _apply_basic_formatting using marker: '{marker}'")
+            logger.debug(f"Applied basic formatting with marker: '{marker}'")
             
         except Exception as e:
-            print(f"DEBUG: _apply_basic_formatting exception: {e}")
+            logger.error(f"Basic formatting failed: {e}")
             # Last resort: just add the text as-is
             paragraph.clear()
             paragraph.add_run(text)

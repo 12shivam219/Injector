@@ -631,7 +631,12 @@ class RobustResumeProcessor:
                 progress_callback(f"Processing document for {filename}...")
             # Load and process document
             doc = Document(file_obj)
-            projects_data = self.doc_processor.project_detector.find_projects_and_responsibilities(doc)
+            
+            # Detect document-wide bullet marker for consistency
+            document_marker = self.doc_processor.bullet_formatter.detect_document_bullet_marker(doc)
+            logger.info(f"Document bullet marker detected: '{document_marker}'")
+            
+            projects_data = self.doc_processor.project_detector.find_projects(doc)
             if not projects_data:
                 result = {
                     'success': False,
@@ -648,19 +653,18 @@ class RobustResumeProcessor:
                 with self._cache_lock:
                     self._result_cache[cache_key] = result
                 return result
-            # Convert to structured format
+            
+            # Convert ProjectInfo objects to structured format
             projects = []
-            for i, project_tuple in enumerate(projects_data):
-                if len(project_tuple) != 3:
-                    logger.error(f"Malformed project tuple at index {i}: {project_tuple}")
-                    continue
-                title, start_idx, end_idx = project_tuple
+            for i, project_info in enumerate(projects_data):
                 projects.append({
-                    'title': title,
+                    'title': project_info.name,
                     'index': i,
-                    'responsibilities_start': start_idx,
-                    'responsibilities_end': end_idx
+                    'responsibilities_start': project_info.start_index,
+                    'responsibilities_end': project_info.end_index,
+                    'project_info': project_info  # Keep reference to original object
                 })
+            
             # Distribute and add points using round-robin logic
             distribution_result = self.doc_processor.point_distributor.distribute_points_to_projects(
                 projects, (selected_points, tech_stacks_used)
@@ -669,20 +673,19 @@ class RobustResumeProcessor:
                 with self._cache_lock:
                     self._result_cache[cache_key] = distribution_result
                 return distribution_result
-            # Add points to each project with mixed tech stacks
+            
+            # Add points to each project with consistent formatting
             total_added = 0
-            # Sort projects by insertion point to process them in order
-            sorted_projects = sorted(distribution_result['distribution'].items(),
-                                   key=lambda x: x[1]['insertion_point'])
-            # Keep track of how many paragraphs we've added to adjust insertion points
-            paragraph_offset = 0
-            for project_title, project_info in sorted_projects:
-                # Adjust insertion point based on previous additions
-                adjusted_project_info = project_info.copy()
-                adjusted_project_info['insertion_point'] += paragraph_offset
-                if 'responsibilities_end' in adjusted_project_info:
-                    adjusted_project_info['responsibilities_end'] += paragraph_offset
-                added = self.doc_processor.add_points_to_project(doc, adjusted_project_info)
+            
+            for project_name, points in distribution_result.distribution.items():
+                # Find the corresponding project
+                project = next((p['project_info'] for p in projects if p['title'] == project_name), None)
+                if project and points:
+                    added = self.doc_processor._add_points_to_project(doc, project, points, document_marker)
+                    total_added += added
+                    logger.debug(f"Added {added} points to project '{project_name}' with marker '{document_marker}'")
+            
+            points_added = total_added
                 total_added += added
                 # Update the offset for subsequent projects
                 paragraph_offset += added
@@ -958,7 +961,11 @@ class PreviewGenerator:
             
             # Load document and find projects
             doc = Document(file_obj)
-            projects_data = self.doc_processor.project_detector.find_projects_and_responsibilities(doc)
+            
+            # Detect document-wide bullet marker for consistency
+            document_marker = self.doc_processor.bullet_formatter.detect_document_bullet_marker(doc)
+            
+            projects_data = self.doc_processor.project_detector.find_projects(doc)
             
             if not projects_data:
                 return {
@@ -966,14 +973,15 @@ class PreviewGenerator:
                     'error': 'No projects with Responsibilities sections found'
                 }
             
-            # Convert to structured format
+            # Convert ProjectInfo objects to structured format
             projects = []
-            for i, (title, start_idx, end_idx) in enumerate(projects_data):
+            for i, project_info in enumerate(projects_data):
                 projects.append({
-                    'title': title,
+                    'title': project_info.name,
                     'index': i,
-                    'responsibilities_start': start_idx,
-                    'responsibilities_end': end_idx
+                    'responsibilities_start': project_info.start_index,
+                    'responsibilities_end': project_info.end_index,
+                    'project_info': project_info
                 })
             
             # Create preview document copy
@@ -982,61 +990,42 @@ class PreviewGenerator:
             temp_buffer.seek(0)
             
             preview_doc = Document(temp_buffer)
-            preview_projects_data = self.doc_processor.project_detector.find_projects_and_responsibilities(preview_doc)
+            preview_projects_data = self.doc_processor.project_detector.find_projects(preview_doc)
             
-            # Convert to structured format with defensive check
+            # Convert to structured format
             preview_projects = []
-            for i, project_tuple in enumerate(preview_projects_data):
-                if len(project_tuple) == 3:
-                    title, start_idx, end_idx = project_tuple
-                    preview_projects.append({
-                        'title': title,
-                        'index': i,
-                        'responsibilities_start': start_idx,
-                        'responsibilities_end': end_idx
-                    })
-                else:
-                    logger.error(f"Malformed project tuple at index {i}: {project_tuple}")
-                    continue
+            for i, project_info in enumerate(preview_projects_data):
+                preview_projects.append({
+                    'title': project_info.name,
+                    'index': i,
+                    'responsibilities_start': project_info.start_index,
+                    'responsibilities_end': project_info.end_index,
+                    'project_info': project_info
+                })
             
-            # Apply changes to preview using round-robin logic
+            # Apply changes to preview
             distribution_result = self.doc_processor.point_distributor.distribute_points_to_projects(
                 preview_projects, (selected_points, tech_stacks_used)
             )
             if not distribution_result['success']:
                 return {'success': False, 'error': distribution_result['error']}
             
-            # Add points to each project with mixed tech stacks for preview
+            # Add points to each project with consistent formatting
             total_added = 0
             project_points_mapping = {}
             
-            # Sort projects by insertion point to process them in order
-            sorted_projects = sorted(distribution_result['distribution'].items(),
-                                   key=lambda x: x[1]['insertion_point'])
-            
-            # Keep track of how many paragraphs we've added to adjust insertion points
-            paragraph_offset = 0
-            
-            for project_title, project_info in sorted_projects:
-                # Store which points are added to which project
-                project_points = {}
-                for tech_name, points in project_info['mixed_tech_stacks'].items():
-                    project_points[tech_name] = points
-                
-                project_points_mapping[project_title] = project_points
-                
-                # Adjust insertion point based on previous additions
-                adjusted_project_info = project_info.copy()
-                adjusted_project_info['insertion_point'] += paragraph_offset
-                if 'responsibilities_end' in adjusted_project_info:
-                    adjusted_project_info['responsibilities_end'] += paragraph_offset
-                
-                # Add points to the document
-                added = self.doc_processor.add_points_to_project(preview_doc, adjusted_project_info)
-                total_added += added
-                
-                # Update the offset for subsequent projects
-                paragraph_offset += added
+            for project_name, points in distribution_result.distribution.items():
+                # Find the corresponding project
+                project = next((p['project_info'] for p in preview_projects if p['title'] == project_name), None)
+                if project and points:
+                    # Store points mapping for display
+                    project_points_mapping[project_name] = {
+                        'points': [p.get('text', str(p)) for p in points]
+                    }
+                    
+                    # Add points with consistent formatting
+                    added = self.doc_processor._add_points_to_project(preview_doc, project, points, document_marker)
+                    total_added += added
             
             points_added = total_added
             
@@ -1051,7 +1040,8 @@ class PreviewGenerator:
                 'preview_content': preview_content,
                 'preview_doc': preview_doc,
                 'projects_count': len(projects),
-                'project_points_mapping': project_points_mapping
+                'project_points_mapping': project_points_mapping,
+                'document_marker': document_marker
             }
             
         except Exception as e:
