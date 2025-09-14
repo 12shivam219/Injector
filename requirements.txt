@@ -44,3 +44,30 @@ colorama
 
 # Email & Communication
 yagmail
+alembic
+celery
+colorama
+concurrent-log-handler
+cryptography
+mammoth
+numpy
+pandas
+passlib
+psutil
+psycopg2-binary
+PyPDF2
+python-dateutil
+python-docx
+python-dotenv
+python-jose
+python-magic
+python-multipart
+python-pptx
+pytz
+redis
+sqlalchemy
+sqlalchemy-utils
+streamlit
+structlog
+tqdm
+yagmail
