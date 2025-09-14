@@ -16,10 +16,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Streamlit App"
+args = "Resume Customizer"
 
 [[workflows.workflow]]
-name = "Streamlit App"
+name = "Resume Customizer"
 author = "agent"
 
 [[workflows.workflow.tasks]]
@@ -33,10 +33,6 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 38667
-externalPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
