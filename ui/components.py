@@ -22,6 +22,35 @@ logger = get_logger()
 class UIComponents:
     """Handles UI component rendering and interactions with enhanced UX."""
     
+    @staticmethod
+    def _make_unique_widget_key(base_key, file_name, content="", index=None, file_instance_id=None):
+        """Generate a unique widget key using content hash to avoid conflicts."""
+        import hashlib
+        # Always include index to handle identical files uploaded multiple times
+        if file_instance_id is not None:
+            suffix = f"{file_instance_id}_{index}" if index is not None else file_instance_id
+            return f"{base_key}_{file_name}_{suffix}"
+        
+        content_to_hash = f"{file_name}_{content}"
+        if index is not None:
+            content_to_hash += f"_{index}"
+        content_hash = hashlib.sha256(content_to_hash.encode('utf-8')).hexdigest()[:10]
+        return f"{base_key}_{file_name}_{content_hash}"
+    
+    @staticmethod
+    def _get_file_instance_id(file_obj):
+        """Get a stable instance ID for a file object based on its content."""
+        import hashlib
+        if hasattr(file_obj, 'getvalue'):
+            # BytesIO object
+            content = file_obj.getvalue()
+        else:
+            # Streamlit uploaded file
+            content = file_obj.read()
+            file_obj.seek(0)  # Reset file pointer
+        
+        return hashlib.sha256(content).hexdigest()[:12]
+    
     def render_sidebar(self):
         """Render the sidebar components."""
         with st.sidebar:
@@ -249,18 +278,18 @@ class UIComponents:
             st.code(UI_CONFIG["example_format"])
 
     @staticmethod
-    def render_email_fields(file_name):
+    def render_email_fields(file_name, file_instance_id=None):
         """Render email configuration fields for a file with validation."""
         col1, col2 = st.columns(2)
         
         with col1:
-            email_to = st.text_input(f"Recipient email for {file_name}", key=f"to_{file_name}")
+            email_to = st.text_input(f"Recipient email for {file_name}", key=UIComponents._make_unique_widget_key("to", file_name, file_instance_id=file_instance_id))
             if email_to:
                 validation = EmailValidator.validate_email(email_to)
                 if validation and not validation.get('valid', True):
                     st.error(f"Invalid recipient email: {', '.join(validation.get('errors', ['Validation failed']))}")
             
-            sender_email = st.text_input(f"Sender email for {file_name}", key=f"from_{file_name}")
+            sender_email = st.text_input(f"Sender email for {file_name}", key=UIComponents._make_unique_widget_key("from", file_name, file_instance_id=file_instance_id))
             if sender_email:
                 validation = EmailValidator.validate_email(sender_email)
                 if validation and not validation.get('valid', True):
@@ -271,25 +300,25 @@ class UIComponents:
                 f"Sender email password for {file_name}", 
                 type="password",
                 help="For Gmail, use an app-specific password",
-                key=f"pwd_{file_name}"
+                key=UIComponents._make_unique_widget_key("pwd", file_name, file_instance_id=file_instance_id)
             )
             smtp_server = st.selectbox(
                 f"SMTP Server for {file_name}",
                 get_smtp_servers(),
-                key=f"smtp_{file_name}"
+                key=UIComponents._make_unique_widget_key("smtp", file_name, file_instance_id=file_instance_id)
             )
             smtp_port = st.number_input(
                 f"SMTP Port for {file_name}",
                 value=465,
                 min_value=1,
                 max_value=65535,
-                key=f"port_{file_name}"
+                key=UIComponents._make_unique_widget_key("port", file_name, file_instance_id=file_instance_id)
             )
         
         return email_to, sender_email, sender_password, smtp_server, smtp_port
 
     @staticmethod
-    def render_email_customization(file_name):
+    def render_email_customization(file_name, file_instance_id=None):
         """Render email customization fields."""
         st.markdown("#### 📧 Email Customization (Optional)")
         
@@ -297,7 +326,7 @@ class UIComponents:
             f"Email Subject for {file_name}",
             value=get_default_email_subject(),
             help="Customize the email subject line",
-            key=f"subject_{file_name}"
+            key=UIComponents._make_unique_widget_key("subject", file_name, file_instance_id=file_instance_id)
         )
         
         email_body = st.text_area(
@@ -305,17 +334,18 @@ class UIComponents:
             value=get_default_email_body(),
             height=120,
             help="Customize the email message content",
-            key=f"body_{file_name}"
+            key=UIComponents._make_unique_widget_key("body", file_name, file_instance_id=file_instance_id)
         )
         
         return email_subject, email_body
 
     @staticmethod
-    def render_manual_points_editor(file_name, user_input):
+    def render_manual_points_editor(file_name, user_input, file_instance_id=None):
         """Render the manual points editor section."""
         with st.expander("✏️ Optional: Edit points before preview", expanded=False):
-            edit_enable_key = f"edit_points_enable_{file_name}"
-            edit_text_key = f"edit_points_text_{file_name}"
+            # Use centralized unique key generation with stable file instance ID
+            edit_enable_key = UIComponents._make_unique_widget_key("edit_points_enable", file_name, file_instance_id=file_instance_id)
+            edit_text_key = UIComponents._make_unique_widget_key("edit_points_text", file_name, file_instance_id=file_instance_id)
             
             edit_points_enabled = st.checkbox(
                 "Enable manual edit of points (one point per line)",
@@ -335,7 +365,7 @@ class UIComponents:
                     help="These points will be used instead of the auto-parsed ones when previewing or generating."
                 )
                 
-                if st.button("Reset edited points to parsed defaults", key=f"reset_points_{file_name}"):
+                if st.button("Reset edited points to parsed defaults", key=UIComponents._make_unique_widget_key("reset_points", file_name, file_instance_id=file_instance_id)):
                     legacy_parser = LegacyParser()
                     default_points, _ = legacy_parser.extract_points_from_legacy_format(user_input or "")
                     st.session_state[edit_text_key] = "\n".join(default_points)
