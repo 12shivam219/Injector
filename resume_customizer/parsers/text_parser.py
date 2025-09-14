@@ -145,7 +145,7 @@ class TechStackParser:
             logger.warning(f"Error parsing original format: {e}")
             return [], []
     
-    @cached(cache_type='parsing', ttl=3600)  # Cache for 1 hour
+    @cached(ttl_seconds=3600)  # Cache for 1 hour
     def parse_tech_stacks(self, text: str) -> Tuple[List[str], List[str]]:
         """
         Parse tech stacks from text, trying multiple formats and caching results.

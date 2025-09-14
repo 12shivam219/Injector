@@ -524,7 +524,7 @@ class DocumentProcessor:
         self.project_detector = ProjectDetector()
         self.point_distributor = PointDistributor()
     
-    @performance_decorator("project_point_addition", operation_type="doc_modification")
+    @performance_decorator(monitor_memory=True, monitor_cpu=True)
     def add_points_to_project(self, doc: Document, project_info: Dict) -> int:
         """Add tech stack points to a project with proper formatting preservation."""
         if 'insertion_point' not in project_info:
