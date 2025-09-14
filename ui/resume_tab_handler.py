@@ -2,7 +2,7 @@ import streamlit as st
 from io import BytesIO
 import base64
 import hashlib
-from infrastructure.monitoring.performance_monitor import performance_decorator
+
 from infrastructure.security.validators import TextValidator
 from utilities.logger import get_logger
 
@@ -260,7 +260,6 @@ class ResumeTabHandler:
                     st.error(f"❌ Error checking task status: {str(e)}")
                     st.info("🛠️ Try restarting the Celery worker and Streamlit app")
 
-    @performance_decorator("preview_generation")
     def handle_preview(self, file, user_input, manual_text=""):
         """Handle preview generation for a single file."""
         if not user_input.strip() and not manual_text:
@@ -318,7 +317,6 @@ class ResumeTabHandler:
             except Exception as e:
                 st.error(f"❌ Error generating preview: {e}")
 
-    @performance_decorator("resume_generation")
     def handle_generation(self, file, file_data):
         """Handle resume generation and email sending with async/caching integration."""
         from infrastructure.security.validators import get_rate_limiter

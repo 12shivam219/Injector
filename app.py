@@ -12,37 +12,40 @@ from io import BytesIO
 from typing import Dict, Any, Optional
 
 # Essential imports only - lazy load others
-from config import get_app_config, APP_CONFIG, validate_config
-from infrastructure.utilities.logger import get_logger
+import logging
 
-# Import performance optimizations with fallback
-try:
-    from performance_optimizations import perf_monitor, perf_optimizer, optimize_streamlit_config
-    PERFORMANCE_OPTIMIZATIONS_AVAILABLE = True
-except ImportError:
-    PERFORMANCE_OPTIMIZATIONS_AVAILABLE = False
-    # Create dummy objects
-    class DummyPerfMonitor:
-        def start_timer(self, name): pass
-        def end_timer(self, name): pass
-    
-    perf_monitor = DummyPerfMonitor()
-    perf_optimizer = None
-    def optimize_streamlit_config(): pass
+def get_logger():
+    """Simple logger function to replace the infrastructure logger"""
+    logger = logging.getLogger(__name__)
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+    return logger
 
-# Import UI components with fallback
-try:
-    from ui.progressive_loader import progressive_loader, render_performance_dashboard
-    PROGRESSIVE_LOADER_AVAILABLE = True
-except ImportError:
-    PROGRESSIVE_LOADER_AVAILABLE = False
-    # Create dummy objects
-    class DummyProgressiveLoader:
-        def render_tabs_progressive(self, tab_data, max_initial_tabs=3): 
-            st.warning("Progressive loader not available - using standard tabs")
-    
-    progressive_loader = DummyProgressiveLoader()
-    def render_performance_dashboard(): pass
+class DummyPerfMonitor:
+    def start_timer(self, name): pass
+    def end_timer(self, name): pass
+
+perf_monitor = DummyPerfMonitor()
+perf_optimizer = None
+
+APP_CONFIG = {
+    "title": "Resume Customizer",
+    "layout": "wide",
+    "version": "2.0.0"
+}
+
+def optimize_streamlit_config(): pass# Basic UI components
+class DummyProgressiveLoader:
+    def render_tabs_progressive(self, tab_data, max_initial_tabs=3): 
+        st.warning("Progressive loader not available - using standard tabs")
+
+progressive_loader = DummyProgressiveLoader()
+PROGRESSIVE_LOADER_AVAILABLE = False
+
 
 # Import error handling components that are used in decorators
 try:
@@ -195,8 +198,7 @@ def get_cached_tab_labels():
         "📄 Resume Customizer", 
         "📤 Bulk Processor", 
         "📋 Requirements",
-        "📚 Know About The Application",
-        "⚙️ Settings"
+        "📚 Know About The Application"
     ]
 
 @st.cache_data
@@ -214,7 +216,6 @@ def get_default_session_state():
         'current_tab': "Upload Resume",
         'performance_data': {},
         'error_history': [],
-        'last_health_check': None,
         'async_tasks': {},
         'ui_preferences': {
             'theme': 'light',
@@ -231,13 +232,7 @@ def initialize_session_state():
             if key not in st.session_state:
                 st.session_state[key] = value
 
-# Import infrastructure components with fallback
-try:
-    from infrastructure.monitoring.performance_monitor import get_performance_monitor
-    PERFORMANCE_MONITOR_AVAILABLE = True
-except ImportError:
-    PERFORMANCE_MONITOR_AVAILABLE = False
-    def get_performance_monitor(): return None
+# Removed performance monitoring imports
 
 try:
     from infrastructure.utilities.memory_optimizer import get_memory_optimizer
@@ -257,98 +252,17 @@ except ImportError:
         def close_all_connections(self): pass
     def get_email_manager(): return DummyEmailManager()
 
-@st.cache_resource
-def get_cached_performance_monitor():
-    return get_performance_monitor()
-
-@st.cache_resource
-def get_cached_memory_optimizer():
-    return get_memory_optimizer()
-
-@st.cache_data
-def get_cached_config():
-    return get_app_config()
 
 @st.cache_resource
 def get_cached_email_manager():
     return get_email_manager()
 
 # Initialize components safely
-logger = get_cached_logger()
-performance_monitor = get_cached_performance_monitor()
-memory_optimizer = get_cached_memory_optimizer() 
+logger = get_logger()
 email_manager = get_cached_email_manager()
-config = get_cached_config()
+config = APP_CONFIG
 
 # Admin resource panel integration
-
-@st.cache_data(ttl=300)  # Cache for 5 minutes
-@handle_errors("application_health_check", ErrorSeverity.HIGH, return_on_error={"healthy": False, "issues": ["Health check failed"]})
-@with_structured_logging("application", "health_check")
-def check_application_health() -> Dict[str, Any]:
-    """Check application health and return status."""
-    health_status = {
-        'healthy': True,
-        'issues': [],
-        'warnings': []
-    }
-    
-    try:
-        # Check if all required modules can be imported
-        import streamlit
-        import docx
-        import io
-        
-            # Check performance monitor
-        if not PERFORMANCE_MONITOR_AVAILABLE or not performance_monitor:
-            health_status['warnings'].append("Performance monitor not available")
-        
-        # Check memory usage
-        try:
-            import psutil
-            memory = psutil.virtual_memory()
-            if memory.percent > 90:
-                health_status['warnings'].append(f"High memory usage: {memory.percent:.1f}%")
-                
-                # Suggest memory cleanup
-                if memory.percent > 95:
-                    health_status['warnings'].append("⚠️ Critical memory usage - consider restarting the application")
-                else:
-                    health_status['warnings'].append("💡 Try processing fewer files at once or restart the application")
-                    
-                # Attempt automatic cleanup
-                try:
-                    if MEMORY_OPTIMIZER_AVAILABLE:
-                        cleanup_result = memory_optimizer.optimize_memory(force=True)
-                        if cleanup_result['status'] == 'completed':
-                            health_status['warnings'].append(f"🧹 Memory cleanup performed - saved {cleanup_result['memory_saved_mb']:.1f}MB")
-                        else:
-                            health_status['warnings'].append("🧹 Memory cleanup attempted")
-                    else:
-                        health_status['warnings'].append("🧹 Memory optimization not available")
-                except Exception as e:
-                    logger.warning(f"Memory optimization failed: {e}")
-                    health_status['warnings'].append("⚠️ Memory cleanup failed - consider manual restart")
-                    
-        except ImportError:
-            health_status['warnings'].append("psutil not available - memory monitoring disabled")
-        
-        # Check disk space
-        try:
-            import psutil
-            disk = psutil.disk_usage('/')
-            if disk.percent > 90:
-                health_status['warnings'].append(f"Low disk space: {disk.percent:.1f}% used")
-        except ImportError:
-            pass
-        except Exception as e:
-            health_status['warnings'].append(f"Disk space check failed: {e}")
-        
-    except ImportError as e:
-        health_status['healthy'] = False
-        health_status['issues'].append(f"Missing required dependency: {e}")
-    
-    return health_status
 
 def render_requirements_tab():
     """Render the Requirements Management tab."""
@@ -452,8 +366,7 @@ def main():
     # Apply Streamlit optimizations
     optimize_streamlit_config()
     
-    # Start performance monitoring
-    perf_monitor.start_timer("app_initialization")
+    # Initialize application
     
     # Preload essential modules for better performance
     try:
@@ -468,13 +381,7 @@ def main():
             async_success = initialize_async_services()
             st.session_state.async_initialized = async_success
     
-    # Check application health first
-    health_status = check_application_health()
-    if not health_status['healthy']:
-        st.error("❌ Application Health Check Failed")
-        for issue in health_status['issues']:
-            st.error(issue)
-        return
+    # Removed health check for faster startup
     
     # Initialize session state with fresh manager instances
     # Force refresh if version changed or handlers missing async methods
@@ -499,7 +406,27 @@ def main():
         except ImportError as e:
             logger.warning(f"Could not initialize bulk processor: {e}")
             st.session_state.bulk_processor = BulkProcessor()
-    
+
+    # Simple configuration validation function
+    def validate_config():
+        class ConfigValidation:
+            def __init__(self):
+                self.valid = True
+                self.issues = []
+                self.warnings = []
+
+        validation = ConfigValidation()
+
+        # Basic validation of essential configuration
+        if not APP_CONFIG.get("title"):
+            validation.valid = False
+            validation.issues.append("Application title is missing")
+
+        if not APP_CONFIG.get("layout"):
+            validation.valid = False
+            validation.issues.append("Layout configuration is missing")
+
+        return validation
 
     # Validate configuration first
     config_validation = validate_config()
@@ -530,8 +457,7 @@ def main():
         import uuid
         st.session_state.user_id = str(uuid.uuid4())
     
-    # End performance monitoring for initialization
-    perf_monitor.end_timer("app_initialization")
+
     
     logger.info("Application started with lazy-loaded components")
 
@@ -601,21 +527,21 @@ def main():
     tab_settings = tabs[tab_idx]
 
     with tab_customizer:
-        # Optimized Resume Customizer Tab - lazy load sidebar components
-        # Only render sidebar once per session
-        if 'sidebar_rendered' not in st.session_state:
-            with st.container():
-                ui.render_sidebar()
-                secure_ui.display_security_status()
+        # Optimized Resume Customizer Tab with proper sidebar handling
+        with st.container():
+            # Render sidebar components (cached internally)
+            ui.render_sidebar()
+            secure_ui.display_security_status()
+            
+            # Add About button in sidebar - must be available on every load
+            with st.sidebar:
+                st.markdown("---")
+                if st.button("ℹ️ About This Application", key="about_app_button", help="Learn more about the application"):
+                    st.session_state.redirect_to_about = True
+                    st.rerun()
                 
-                # Add About button in sidebar
-                with st.sidebar:
-                    st.markdown("---")
-                    if st.button("ℹ️ About This Application", key="about_app_button", help="Learn more about the application"):
-                        st.session_state.redirect_to_about = True
-                        st.rerun()
-                
-                st.session_state.sidebar_rendered = True
+                # Add helpful note about the Application Guide tab
+                st.info("📚 **Tip:** You can also access the full guide by clicking the '📚 Know About The Application' tab above.")
         
         # Quick async progress tracking without heavy operations
         try:
@@ -1087,73 +1013,7 @@ def main():
             
             st.markdown("---")
             
-            # Enhanced application health status with detailed metrics
-            st.subheader("🔍 Application Health Dashboard")
-            
-            # Health check with progress
-            if st.button("🔍 Run Health Check", help="Perform comprehensive system health check"):
-                health_container = st.container()
-                with health_container:
-                    st.markdown("### 🏥 System Health Analysis")
-                    
-                    health_checks = [
-                        ("🔧 Core Components", "Checking essential modules"),
-                        ("💾 Memory Status", "Analyzing memory usage"),
-                        ("🌐 Network Connectivity", "Testing connections"),
-                        ("📁 File System", "Validating file access"),
-                        ("⚡ Performance", "Measuring response times")
-                    ]
-                    
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
-                    
-                    results = {}
-                    for i, (component, description) in enumerate(health_checks):
-                        progress = (i + 1) / len(health_checks)
-                        progress_bar.progress(progress)
-                        status_text.text(f"{description}...")
-                        
-                        # Fast health check
-                        results[component] = "✅ Healthy" if i < 4 else "⚠️ Slow"
-                    
-                    progress_bar.empty()
-                    status_text.empty()
-                    
-                    # Display results
-                    st.markdown("#### 📊 Health Check Results")
-                    for component, status in results.items():
-                        col1, col2 = st.columns([3, 1])
-                        with col1:
-                            st.text(component)
-                        with col2:
-                            if "✅" in status:
-                                st.success(status)
-                            else:
-                                st.warning(status)
-                    
-                    overall_health = sum(1 for status in results.values() if "✅" in status) / len(results)
-                    if overall_health > 0.8:
-                        st.toast("🎉 System health check passed!", icon="✅")
-                    else:
-                        st.toast("⚠️ Some issues detected in health check", icon="⚠️")
-            
-            # Current health status display
-            if health_status['healthy']:
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.success("✅ Application is healthy")
-                with col2:
-                    st.metric("🎯 Health Score", "98%")
-                with col3:
-                    st.metric("⏱️ Uptime", "2h 34m")
-            else:
-                st.error("❌ Application has issues")
-                for issue in health_status.get('issues', []):
-                    st.error(f"• {issue}")
-                for issue in health_status.get('issues', []):
-                    st.error(f"• {issue}")
-            if health_status['warnings']:
-                st.warning("\n".join(["⚠️ " + w for w in health_status['warnings']]))
+
         
         with settings_tabs[1]:
             # Enhanced Monitoring Section

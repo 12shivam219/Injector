@@ -23,22 +23,37 @@ from .models import (
     RequirementSummaryView
 )
 
-from .migrations import (
-    DatabaseMigrator,
-    migrator,
-    initialize_database_schema,
-    refresh_database_views,
-    get_database_information,
-    perform_database_maintenance
-)
+# Migrations module optional - only import if alembic is available
+try:
+    from .migrations import (
+        DatabaseMigrator,
+        migrator,
+        initialize_database_schema,
+        refresh_database_views,
+        get_database_information,
+        perform_database_maintenance
+    )
+    MIGRATIONS_AVAILABLE = True
+except ImportError:
+    MIGRATIONS_AVAILABLE = False
 
-from .requirements_manager_db import PostgreSQLRequirementsManager
+# Optional import - requirements_manager_db might have dependencies
+try:
+    from .requirements_manager_db import PostgreSQLRequirementsManager
+    REQUIREMENTS_MANAGER_AVAILABLE = True
+except ImportError:
+    REQUIREMENTS_MANAGER_AVAILABLE = False
 
-from .migrate_from_json import (
-    JSONToPostgreSQLMigrator,
-    run_migration,
-    run_dry_run
-)
+# Optional import - migrate_from_json requires migrations which needs alembic
+try:
+    from .migrate_from_json import (
+        JSONToPostgreSQLMigrator,
+        run_migration,
+        run_dry_run
+    )
+    MIGRATION_TOOLS_AVAILABLE = True
+except ImportError:
+    MIGRATION_TOOLS_AVAILABLE = False
 
 from .config import (
     DatabaseConfig,

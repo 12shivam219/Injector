@@ -82,6 +82,13 @@ class RequirementsManager:
     def _save_requirements(self):
         """Save requirements to JSON file."""
         try:
+            # Ensure all requirements have created_at field
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            for req_id, req in self.requirements.items():
+                if 'created_at' not in req:
+                    req['created_at'] = current_time
+                    logger.info(f"Added missing created_at for requirement {req_id}")
+            
             path = self._get_storage_path()
             with open(path, 'w', encoding='utf-8') as f:
                 json.dump(self.requirements, f, indent=2)
@@ -275,9 +282,15 @@ def render_requirement_form(requirement_data: Optional[Dict[str, Any]] = None) -
     """Render the comprehensive requirement form and return form data."""
     is_edit = requirement_data is not None
     
+    # Get current time for timestamps
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
     # Initialize form data with defaults or existing values
     form_data = {
+        'created_at': requirement_data.get('created_at', current_time) if requirement_data else current_time,
+        'updated_at': current_time,
         # Basic requirement info
+        'created_at': requirement_data.get('created_at', current_time) if requirement_data else current_time,
         'req_status': 'New working',
         'applied_for': 'Raju',
         'next_step': '',
@@ -712,7 +725,7 @@ def render_requirement_form(requirement_data: Optional[Dict[str, Any]] = None) -
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             if not is_edit:
                 form_data['created_at'] = current_time
-                # Auto-capture requirement entered date
+                # Auto-capture requirement entered date if it's a new requirement
                 form_data['job_requirement_info']['requirement_entered_date'] = datetime.now().isoformat()
             form_data['updated_at'] = current_time
             
@@ -779,7 +792,15 @@ def render_requirements_list(requirements_manager: RequirementsManager):
     st.markdown("---")
     
     # Sort requirements by creation date (newest first)
-    requirements.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+    try:
+        requirements.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+    except:
+        # If sorting by created_at fails, try to set a default created_at
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for req in requirements:
+            if 'created_at' not in req:
+                req['created_at'] = current_time
+        requirements.sort(key=lambda x: x.get('created_at', ''), reverse=True)
     
     for req in requirements:
         # Format the title with enhanced status, record number, job title and client

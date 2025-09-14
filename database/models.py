@@ -111,7 +111,7 @@ class Requirement(BaseModel):
         # Composite indexes for common query patterns
         Index('idx_req_status_applied_for', req_status, applied_for),
         Index('idx_client_job_title', client_company, job_title),
-        Index('idx_created_status', created_at, req_status),
+        Index('idx_created_status', 'created_at', req_status),
         Index('idx_tech_stack_gin', tech_stack, postgresql_using='gin'),  # GIN index for JSONB queries
         Index('idx_requirement_search', job_title, client_company, primary_tech_stack),
     )
@@ -165,7 +165,7 @@ class RequirementComment(BaseModel):
     
     # Indexes for performance
     __table_args__ = (
-        Index('idx_req_comments_timeline', requirement_id, created_at.desc()),
+        Index('idx_req_comments_timeline', requirement_id, 'created_at'),
         Index('idx_comments_author_type', author, comment_type),
     )
     
@@ -240,7 +240,7 @@ class AuditLog(BaseModel):
     
     __table_args__ = (
         Index('idx_audit_table_operation', table_name, operation),
-        Index('idx_audit_timeline', created_at.desc()),
+        Index('idx_audit_timeline', 'created_at'),
         Index('idx_audit_record', record_id, table_name),
     )
 

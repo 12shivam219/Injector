@@ -373,4 +373,56 @@ def setup_database_environment() -> Dict[str, Any]:
         result['error'] = str(e)
         return result
 
+# Email configuration functions for UI components
+def get_smtp_servers():
+    """Get list of available SMTP servers"""
+    return [
+        "smtp.gmail.com",
+        "smtp.outlook.com", 
+        "smtp.yahoo.com",
+        "smtp.mail.yahoo.com",
+        "smtp.aol.com",
+        "smtp.zoho.com",
+        "smtp.icloud.com",
+        "localhost"
+    ]
+
+def get_default_email_subject():
+    """Get default email subject template"""
+    return "Resume Application - {job_title} at {company_name}"
+
+def get_default_email_body():
+    """Get default email body template"""
+    return """Dear Hiring Manager,
+
+I hope this email finds you well. I am writing to express my interest in the {job_title} position at {company_name}.
+
+Please find my resume attached for your review. I have customized it specifically for this role, highlighting my relevant experience and skills that align with your requirements.
+
+I would welcome the opportunity to discuss how my background and enthusiasm can contribute to your team's success.
+
+Thank you for your time and consideration.
+
+Best regards,
+[Your Name]
+[Your Contact Information]"""
+
+def get_email_config():
+    """Get email configuration settings"""
+    return {
+        'smtp_timeout': 30,
+        'max_attachment_size': 25 * 1024 * 1024,  # 25MB
+        'supported_formats': ['.pdf', '.docx', '.doc'],
+        'default_port_mapping': {
+            'smtp.gmail.com': 587,
+            'smtp.outlook.com': 587,
+            'smtp.yahoo.com': 587,
+            'smtp.mail.yahoo.com': 587,
+            'smtp.aol.com': 587,
+            'smtp.zoho.com': 587,
+            'smtp.icloud.com': 587,
+            'localhost': 25
+        }
+    }
+
 

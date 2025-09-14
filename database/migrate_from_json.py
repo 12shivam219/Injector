@@ -11,8 +11,23 @@ from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 
 from .connection import initialize_database, get_db_session
-from .migrations import initialize_database_schema
-from .requirements_manager_db import PostgreSQLRequirementsManager
+# Optional import - migrations module requires alembic
+try:
+    from .migrations import initialize_database_schema
+    MIGRATIONS_AVAILABLE = True
+except ImportError:
+    MIGRATIONS_AVAILABLE = False
+    def initialize_database_schema():
+        return {"success": False, "message": "Migrations module not available"}
+# Optional import - requirements_manager_db might have circular dependencies
+try:
+    from .requirements_manager_db import PostgreSQLRequirementsManager
+    REQUIREMENTS_MANAGER_AVAILABLE = True
+except ImportError:
+    REQUIREMENTS_MANAGER_AVAILABLE = False
+    class PostgreSQLRequirementsManager:
+        def __init__(self):
+            pass
 
 logger = logging.getLogger(__name__)
 

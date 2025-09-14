@@ -98,34 +98,23 @@ def initialize_database():
         return False
 
 def test_database_connection():
-    """Test database connection and performance"""
+    """Test database connection"""
     try:
-        from database import database_health_check, get_database_stats
+        from database import get_connection_manager
         
         print("🔍 Testing database connection...")
         
-        health = database_health_check()
-        if health['connected']:
-            print("✅ Database connection successful")
-            print(f"📊 Response time: {health.get('response_time_ms', 'N/A')} ms")
-            
-            stats = get_database_stats()
-            if stats:
-                print("📈 Connection Pool Stats:")
-                print(f"   Active connections: {stats.get('active_connections', 0)}")
-                print(f"   Total connections: {stats.get('total_connections', 0)}")
-                print(f"   Pool size: {stats.get('pool_size', 0)}")
+        conn_manager = get_connection_manager()
+        with conn_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            result = cursor.fetchone()
+            if result:
+                print("✅ Database connection successful")
             
             return True
-        else:
-            print("❌ Database connection failed")
-            if health.get('errors'):
-                for error in health['errors']:
-                    print(f"   ❌ {error}")
-            return False
-            
     except Exception as e:
-        print(f"❌ Connection test failed: {e}")
+        print(f"❌ Database connection failed: {str(e)}")
         return False
 
 def migrate_from_json(json_file: str = "requirements.json", backup: bool = True, dry_run: bool = False):

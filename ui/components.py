@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 from typing import List, Dict, Any, Optional
-from config import UI_CONFIG, get_smtp_servers, get_default_email_subject, get_default_email_body, get_app_config
+from database.config import get_smtp_servers, get_default_email_subject, get_default_email_body
 from infrastructure.security.validators import get_file_validator, EmailValidator, TextValidator
 from resume_customizer.parsers.text_parser import LegacyParser
 from infrastructure.utilities.logger import get_logger
@@ -10,7 +10,6 @@ from infrastructure.security.security_enhancements import SecurePasswordManager,
 # Try to import enhanced error handling
 try:
     from infrastructure.utilities.error_integration import (
-        display_error_dashboard, display_performance_metrics, 
         safe_operation, log_user_action, create_error_boundary
     )
     ENHANCED_UI_AVAILABLE = True
@@ -18,7 +17,6 @@ except ImportError:
     ENHANCED_UI_AVAILABLE = False
 
 file_validator = get_file_validator()
-config = get_app_config()
 logger = get_logger()
 
 class UIComponents:
@@ -29,27 +27,9 @@ class UIComponents:
     def get_sidebar_config():
         """Get cached sidebar configuration."""
         return {
-            "status_checks": {
-                "Streamlit": "session_state",
-                "File Upload": "file_uploader", 
-                "Memory": "cache_data"
-            },
             "quick_actions": [
-                {"icon": "🔍", "label": "Health Check", "help": "Check system status"},
-                {"icon": "🧹", "label": "Clear Cache", "help": "Clear application cache"},
-                {"icon": "📊", "label": "Performance", "help": "View performance metrics"}
+                {"icon": "🧹", "label": "Clear Cache", "help": "Clear application cache"}
             ]
-        }
-    
-    @staticmethod
-    @st.cache_data(ttl=300)  # Cache sidebar content for 5 minutes
-    def get_sidebar_health_status():
-        """Get cached health status to avoid repeated checks."""
-        return {
-            "Core System": hasattr(st, 'session_state'),
-            "File Operations": hasattr(st, 'file_uploader'),
-            "Memory Cache": hasattr(st, 'cache_data'),
-            "UI Components": True
         }
     
     @staticmethod
@@ -59,24 +39,7 @@ class UIComponents:
             # Simplified header for faster rendering
             st.markdown("### 🚀 System Status")
             
-            # Optimized health check
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                if st.button("🔍 Health Check", help="Quick system check", use_container_width=True):
-                    # Fast health check without spinner delay
-                    checks = UIComponents.get_sidebar_health_status()
-                    
-                    # Quick status display
-                    all_healthy = all(checks.values())
-                    if all_healthy:
-                        st.success("✅ All systems operational")
-                    else:
-                        st.warning("⚠️ Some issues detected")
-                    
-                    overall_health = sum(checks.values()) / len(checks) * 100
-                    st.metric("🎯 Health Score", f"{overall_health:.0f}%")
-            
-            with col2:
+            with st.container():
                 st.metric("⚡", "Active")
             
             st.markdown("---")
@@ -327,8 +290,8 @@ class UIComponents:
                 max_workers = st.slider(
                     "🔄 Parallel Workers (Higher = Faster)",
                     min_value=2,
-                    max_value=min(config["max_workers_limit"], num_files),
-                    value=min(config["max_workers_default"], num_files),
+                    max_value=min(8, num_files),
+                    value=min(4, num_files),
                     help="Number of parallel processes. More workers = faster processing but higher CPU usage"
                 )
                 
@@ -344,14 +307,8 @@ class UIComponents:
                     value=True,
                     help="Display progress updates (may slow down slightly)"
                 )
-                
-                performance_stats = st.checkbox(
-                    "📈 Show Performance Stats",
-                    value=True,
-                    help="Display timing and throughput information"
-                )
         
-        return max_workers, bulk_email_mode, show_progress, performance_stats
+        return max_workers, bulk_email_mode, show_progress, False
     
     @staticmethod
     def render_processing_status(operation_name: str, current_step: str, progress: float = None):
