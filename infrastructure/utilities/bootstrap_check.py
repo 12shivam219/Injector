@@ -7,21 +7,46 @@ from typing import Tuple, Dict, Any
 
 def check_bootstrap_status() -> Tuple[bool, Dict[str, Any]]:
     """
-    Check if all required services and components are initialized.
+    Check if required services and components are initialized.
     Returns:
         Tuple[bool, Dict[str, Any]]: (is_ready, status_details)
     """
+    services = st.session_state.get('services', {})
+    
     status = {
         'session_initialized': 'initialized' in st.session_state,
-        'services_available': bool(st.session_state.get('services', {})),
+        'services_available': bool(services),
         'async_ready': st.session_state.get('async_initialized', False),
-        'ui_components': 'ui_components' in st.session_state.get('services', {}),
-        'resume_processor': 'resume_processor' in st.session_state.get('services', {}),
-        'requirements_manager': 'requirements_manager' in st.session_state.get('services', {}),
-        'analytics': 'analytics' in st.session_state.get('services', {})
+        'ui_components': services.get('ui_components') is not None,
+        'resume_processor': services.get('resume_processor') is not None,
+        'requirements_manager': services.get('requirements_manager') is not None,
+        'analytics': services.get('analytics') is not None
     }
     
-    is_ready = all(status.values())
+    # Required components for basic functionality
+    required_components = [
+        'session_initialized',
+        'services_available',
+        'ui_components'
+    ]
+    
+    # Optional components (nice to have but not required for basic functionality)
+    optional_components = [
+        'async_ready',
+        'resume_processor', 
+        'requirements_manager',
+        'analytics'
+    ]
+    
+    # Check if required components are ready
+    required_ready = all(status[comp] for comp in required_components)
+    
+    # Count optional components that are ready
+    optional_ready_count = sum(status[comp] for comp in optional_components)
+    
+    # Consider bootstrap successful if required components + at least one optional component is ready
+    is_ready = required_ready and optional_ready_count >= 1
+    
     return is_ready, status
 
 def display_bootstrap_status():

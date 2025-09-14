@@ -15,6 +15,18 @@ logger = logging.getLogger(__name__)
 _thread_pool = None
 _active_tasks = {}
 
+def initialize_async_services(max_workers: int = 4) -> bool:
+    """
+    Initialize async processing capabilities
+    
+    Args:
+        max_workers: Maximum number of worker threads
+        
+    Returns:
+        bool: True if initialization successful
+    """
+    return initialize_async_processing(max_workers)
+
 def initialize_async_processing(max_workers: int = 4) -> bool:
     """
     Initialize async processing capabilities

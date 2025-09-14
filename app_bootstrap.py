@@ -120,13 +120,19 @@ def get_cached_services() -> Dict[str, Any]:
         services['resume_processor'] = None
         logging.warning(f"Could not load resume processor: {e}")
     
-    # Requirements Manager
+    # Requirements Manager - Try database version first, fallback to file-based
     try:
         from database.requirements_manager_db import RequirementsManager
         services['requirements_manager'] = RequirementsManager()
-    except ImportError as e:
-        services['requirements_manager'] = None
-        logging.warning(f"Could not load requirements manager: {e}")
+    except (ImportError, Exception) as e:
+        # Fallback to file-based requirements manager
+        try:
+            from requirements_integration import RequirementsManager
+            services['requirements_manager'] = RequirementsManager()
+            logging.info("Using file-based requirements manager as fallback")
+        except Exception as fallback_e:
+            services['requirements_manager'] = None
+            logging.warning(f"Could not load any requirements manager: {e}, fallback: {fallback_e}")
     
     # Analytics Manager
     try:
@@ -146,7 +152,7 @@ def get_cached_services() -> Dict[str, Any]:
         else:
             services['bulk_processor'] = None
             logging.warning("Resume manager initialization failed for bulk processor")
-    except ImportError as e:
+    except (ImportError, Exception) as e:
         services['bulk_processor'] = None
         logging.warning(f"Could not load bulk processor: {e}")
     
@@ -168,7 +174,7 @@ def get_cached_services() -> Dict[str, Any]:
         else:
             services['resume_tab_handler'] = None
             logging.warning("Resume manager initialization failed")
-    except ImportError as e:
+    except (ImportError, Exception) as e:
         services['resume_tab_handler'] = None
         logging.warning(f"Could not load resume tab handler: {e}")
     
