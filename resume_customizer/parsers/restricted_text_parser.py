@@ -36,15 +36,15 @@ Please use one of these 3 supported formats:
 
 FORMAT 1: Tech Stack (no colon) + Tabbed Bullet Points
 Java
-•	Point with tab indentation
-•	Another point with tab
-•	Third point with tab
+•       Point with tab indentation
+•       Another point with tab
+•       Third point with tab
 
 FORMAT 2: Tech Stack with Colon + Tabbed Bullet Points  
 Java:
-•	Point with tab indentation
-•	Another point with tab
-•	Third point with tab
+•       Point with tab indentation
+•       Another point with tab
+•       Third point with tab
 
 FORMAT 3: Tech Stack (no colon) + Regular Bullet Points
 Java

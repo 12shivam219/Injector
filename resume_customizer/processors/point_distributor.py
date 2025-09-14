@@ -112,19 +112,49 @@ class PointDistributor:
         """
         result = {}
         
-        # Group points by technology
-        for i, point in enumerate(points):
-            # Find the technology this point belongs to
-            for tech in tech_names:
-                if tech.lower() in point.lower():
-                    if tech not in result:
-                        result[tech] = []
+        if not points or not tech_names:
+            return result
+        
+        # For block-based format (like user's), distribute points evenly across tech stacks
+        # This assumes the parser provides points in the same order as tech stacks
+        points_per_tech = len(points) // len(tech_names)
+        remaining_points = len(points) % len(tech_names)
+        
+        point_index = 0
+        for i, tech in enumerate(tech_names):
+            if tech not in result:
+                result[tech] = []
+            
+            # Calculate number of points for this tech stack
+            num_points = points_per_tech
+            if i < remaining_points:  # Distribute remaining points to first few tech stacks
+                num_points += 1
+            
+            # Assign points to this tech stack
+            for j in range(num_points):
+                if point_index < len(points):
                     result[tech].append({
-                        'text': point,
+                        'text': points[point_index],
                         'tech': tech,
-                        'original_index': i
+                        'original_index': point_index
                     })
-                    break
+                    point_index += 1
+        
+        # Fallback: if even distribution didn't work, try text matching
+        if not result or all(len(points) == 0 for points in result.values()):
+            logger.warning("Even distribution failed, trying text matching fallback")
+            for i, point in enumerate(points):
+                # Find the technology this point belongs to
+                for tech in tech_names:
+                    if tech.lower() in point.lower():
+                        if tech not in result:
+                            result[tech] = []
+                        result[tech].append({
+                            'text': point,
+                            'tech': tech,
+                            'original_index': i
+                        })
+                        break
         
         return result
     
