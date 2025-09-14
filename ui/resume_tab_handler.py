@@ -4,7 +4,7 @@ import base64
 import hashlib
 
 from infrastructure.security.validators import TextValidator
-from utilities.logger import get_logger
+from infrastructure.utilities.logger import get_logger
 
 logger = get_logger()
 

@@ -3,7 +3,7 @@ import time
 from typing import List, Dict, Any, Optional
 
 # Removed performance monitor import - monitoring disabled
-from utilities.logger import get_logger
+from infrastructure.utilities.logger import get_logger
 from infrastructure.async_processing.async_integration import process_documents_async, get_async_results
 
 logger = get_logger()

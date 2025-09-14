@@ -3,7 +3,7 @@ Utility functions for bulk processing checks and data preparation.
 """
 import streamlit as st
 from typing import List, Tuple, Dict, Any
-from utilities.logger import get_logger
+from infrastructure.utilities.logger import get_logger
 
 logger = get_logger()
 

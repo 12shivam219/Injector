@@ -5,7 +5,7 @@ Handles distribution of tech stack points across projects with improved error ha
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Any, Optional
 import random
-from utilities.logger import get_logger
+from infrastructure.utilities.logger import get_logger
 
 logger = get_logger()
 

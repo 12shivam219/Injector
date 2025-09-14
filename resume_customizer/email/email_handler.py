@@ -17,8 +17,8 @@ except ImportError:
     # Fallback if SMTP_SERVERS not defined in config
     SMTP_SERVERS = {}
     ERROR_MESSAGES = {}
-from utilities.retry_handler import get_retry_handler, with_retry
-from utilities.logger import get_logger
+from infrastructure.utilities.retry_handler import get_retry_handler, with_retry
+from infrastructure.utilities.logger import get_logger
 from infrastructure.security.security_enhancements import SecurePasswordManager, InputSanitizer, rate_limit
 # Removed circuit breaker import - monitoring disabled
 from enhancements.metrics_analytics_enhanced import record_email_sent

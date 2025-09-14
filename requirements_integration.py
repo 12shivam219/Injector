@@ -10,8 +10,8 @@ from datetime import datetime
 from dataclasses import dataclass
 
 from ui.requirements_manager import RequirementsManager
-from utilities.logger import get_logger
-from core.text_parser import parse_input_text
+from infrastructure.utilities.logger import get_logger
+from resume_customizer.parsers.text_parser import parse_input_text
 
 logger = get_logger()
 

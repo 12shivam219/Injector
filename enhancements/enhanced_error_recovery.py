@@ -14,8 +14,8 @@ from enum import Enum
 import psutil
 from io import BytesIO
 
-from utilities.logger import get_logger
-from utilities.structured_logger import get_structured_logger
+from infrastructure.utilities.logger import get_logger
+from infrastructure.utilities.structured_logger import get_structured_logger
 from .error_handling_enhanced import ErrorHandler, ErrorContext, ErrorSeverity
 from infrastructure.monitoring.circuit_breaker import CircuitBreakerError, get_circuit_breaker, CircuitBreakerConfig
 

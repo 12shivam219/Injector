@@ -13,7 +13,7 @@ from infrastructure.security.security_enhancements import (
     SessionSecurityManager,
     rate_limit
 )
-from utilities.logger import get_logger
+from infrastructure.utilities.logger import get_logger
 
 logger = get_logger()
 
