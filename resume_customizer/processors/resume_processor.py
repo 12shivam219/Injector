@@ -683,13 +683,18 @@ class RobustResumeProcessor:
                 })
             
             # Distribute and add points using round-robin logic
-            distribution_result = self.doc_processor.point_distributor.distribute_points_to_projects(
+            distribution_result = self.doc_processor.point_distributor.distribute_points(
                 projects, (selected_points, tech_stacks_used)
             )
-            if not distribution_result['success']:
+            if not distribution_result.distribution:
+                error_result = {
+                    'success': False,
+                    'error': 'Failed to distribute points to projects',
+                    'filename': filename
+                }
                 with self._cache_lock:
-                    self._result_cache[cache_key] = distribution_result
-                return distribution_result
+                    self._result_cache[cache_key] = error_result
+                return error_result
             
             # Add points to each project with consistent formatting
             total_added = 0
@@ -1017,11 +1022,11 @@ class PreviewGenerator:
                 })
             
             # Apply changes to preview
-            distribution_result = self.doc_processor.point_distributor.distribute_points_to_projects(
+            distribution_result = self.doc_processor.point_distributor.distribute_points(
                 preview_projects, (selected_points, tech_stacks_used)
             )
-            if not distribution_result['success']:
-                return {'success': False, 'error': distribution_result['error']}
+            if not distribution_result.distribution:
+                return {'success': False, 'error': 'Failed to distribute points to projects'}
             
             # Add points to each project with consistent formatting
             total_added = 0
