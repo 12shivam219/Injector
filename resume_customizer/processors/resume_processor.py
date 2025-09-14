@@ -608,30 +608,52 @@ class RobustResumeProcessor:
             # Parse tech stacks and points (now backed by LRU cache in parser)
             manual_text = file_data.get('manual_text', '')
             
-            # Use new restricted parser for strict format validation
-            try:
-                selected_points, tech_stacks_used = parse_input_text_restricted(raw_text, manual_text)
-            except RestrictedFormatError as e:
-                result = {
-                    'success': False,
-                    'error': f"Input format error: {str(e)}",
-                    'filename': filename
-                }
-                audit_logger.log(
-                    action="process_single_resume",
-                    user=user,
-                    details={"filename": filename},
-                    status="failed",
-                    error=result['error']
-                )
-                with self._cache_lock:
-                    self._result_cache[cache_key] = result
-                return result
+            # Use new restricted parser first, with fallback to legacy parser
+            selected_points, tech_stacks_used = [], []
+            parsing_method = "unknown"
             
+            try:
+                # Try restricted parser first
+                selected_points, tech_stacks_used = parse_input_text_restricted(raw_text, manual_text)
+                parsing_method = "restricted"
+                
+                if not selected_points or not tech_stacks_used:
+                    # Empty results from restricted parser, try legacy fallback
+                    self.logger.warning(f"Restricted parser returned empty results for {filename}, trying legacy parser")
+                    from resume_customizer.parsers.text_parser import parse_input_text
+                    selected_points, tech_stacks_used = parse_input_text(raw_text, manual_text)
+                    parsing_method = "legacy_fallback"
+                    
+            except RestrictedFormatError as e:
+                # Format error from restricted parser, try legacy fallback
+                self.logger.warning(f"Restricted parser failed for {filename}: {str(e)}, trying legacy parser")
+                try:
+                    from resume_customizer.parsers.text_parser import parse_input_text
+                    selected_points, tech_stacks_used = parse_input_text(raw_text, manual_text)
+                    parsing_method = "legacy_fallback"
+                except Exception as fallback_error:
+                    self.logger.error(f"Both parsers failed for {filename}: {str(fallback_error)}")
+                    result = {
+                        'success': False,
+                        'error': ERROR_MESSAGES.get("parsing_exception", "Parsing error: {error}").format(error=str(e)),
+                        'filename': filename
+                    }
+                    audit_logger.log(
+                        action="process_single_resume",
+                        user=user,
+                        details={"filename": filename},
+                        status="failed",
+                        error=result['error']
+                    )
+                    with self._cache_lock:
+                        self._result_cache[cache_key] = result
+                    return result
+                    
+            # Final check for empty results after all parsing attempts
             if not selected_points or not tech_stacks_used:
                 result = {
                     'success': False,
-                    'error': ERROR_MESSAGES["no_tech_stacks"].format(filename=filename),
+                    'error': ERROR_MESSAGES.get("empty_parse_results", "No valid points detected in your input"),
                     'filename': filename
                 }
                 audit_logger.log(
@@ -644,6 +666,8 @@ class RobustResumeProcessor:
                 with self._cache_lock:
                     self._result_cache[cache_key] = result
                 return result
+                
+            self.logger.info(f"Successfully parsed {len(selected_points)} points using {parsing_method} method for {filename}")
             if progress_callback:
                 progress_callback(f"Processing document for {filename}...")
             # Load and process document
@@ -689,9 +713,16 @@ class RobustResumeProcessor:
             if not distribution_result.distribution:
                 error_result = {
                     'success': False,
-                    'error': 'Failed to distribute points to projects',
-                    'filename': filename
+                    'error': ERROR_MESSAGES.get("point_distribution_failed", "Cannot distribute points because no valid tech stack data was found"),
+                    'filename': filename,
+                    'debug_info': {
+                        'selected_points_count': len(selected_points),
+                        'tech_stacks_count': len(tech_stacks_used),
+                        'projects_count': len(projects),
+                        'parsing_method': parsing_method
+                    }
                 }
+                self.logger.error(f"Point distribution failed for {filename}. Points: {len(selected_points)}, Stacks: {len(tech_stacks_used)}, Projects: {len(projects)}")
                 with self._cache_lock:
                     self._result_cache[cache_key] = error_result
                 return error_result
@@ -1026,7 +1057,15 @@ class PreviewGenerator:
                 preview_projects, (selected_points, tech_stacks_used)
             )
             if not distribution_result.distribution:
-                return {'success': False, 'error': 'Failed to distribute points to projects'}
+                return {
+                    'success': False, 
+                    'error': ERROR_MESSAGES.get("point_distribution_failed", "Cannot distribute points because no valid tech stack data was found"),
+                    'debug_info': {
+                        'selected_points_count': len(selected_points),
+                        'tech_stacks_count': len(tech_stacks_used),
+                        'projects_count': len(preview_projects)
+                    }
+                }
             
             # Add points to each project with consistent formatting
             total_added = 0

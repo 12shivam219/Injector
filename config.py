@@ -220,9 +220,61 @@ def get_config_summary():
         "app_version": APP_CONFIG["version"]
     }
 
+# Error and success message definitions
+ERROR_MESSAGES = {
+    "invalid_tech_stack_format": """❌ Input format error! Please use one of these 3 supported formats:
+
+**FORMAT 1:** Tech Stack (no colon) + Tabbed Bullet Points
+```
+Java
+•\tPoint with tab indentation
+•\tAnother point with tab
+```
+
+**FORMAT 2:** Tech Stack with Colon + Tabbed Bullet Points
+```
+Java:
+•\tPoint with tab indentation  
+•\tAnother point with tab
+```
+
+**FORMAT 3:** Tech Stack (no colon) + Regular Bullet Points
+```
+Java
+• Point with regular bullet (no tab)
+• Another point with regular bullet
+```
+
+You can mix different formats in the same input. Each tech stack should be separated by a blank line.""",
+    
+    "empty_parse_results": """⚠️ No valid points detected in your input. Please ensure you're using one of the 3 supported formats above with:
+- Tech stack name on its own line
+- Bullet points (• symbol) below the tech name
+- Each tech stack separated by blank lines""",
+    
+    "point_distribution_failed": "❌ Cannot distribute points because no valid tech stack data was found. Please check your input format.",
+    
+    "no_tech_stacks": "❌ No tech stacks found in the input for file: {filename}. Please add tech stack data using the supported formats.",
+    
+    "no_projects": "❌ No projects found in resume: {filename}. Please ensure your resume has clear project sections with 'Responsibilities:' headings.",
+    
+    "parsing_exception": "❌ Error parsing your input: {error}\n\nPlease use one of the 3 supported formats shown above.",
+    
+    "smtp_connection_failed": "Failed to connect to SMTP server: {error}",
+    "custom_smtp_error": "Custom SMTP configuration error: {error}"
+}
+
+SUCCESS_MESSAGES = {
+    "resume_processed": "✅ Resume processed successfully! Added {points_count} points across {projects_count} projects.",
+    "email_sent": "✅ Email sent successfully to {recipient}",
+    "bulk_processing_complete": "✅ Bulk processing complete! Processed {count} resumes successfully.",
+    "preview_generated": "✅ Preview generated successfully with {points_count} new points."
+}
+
 # Export commonly used configurations
 __all__ = [
     'DOC_CONFIG', 'PARSING_CONFIG', 'EMAIL_CONFIG', 'APP_CONFIG', 'UI_CONFIG',
+    'ERROR_MESSAGES', 'SUCCESS_MESSAGES',
     'is_production', 'is_debug', 'reload_config', 'create_env_template',
     'get_smtp_servers', 'get_default_email_subject', 'get_default_email_body',
     'get_email_config', 'get_config_summary', 'DATABASE_INTEGRATION_AVAILABLE'
