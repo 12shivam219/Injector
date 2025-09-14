@@ -17,9 +17,9 @@ import psutil
 
 from infrastructure.utilities.logger import get_logger
 from infrastructure.utilities.structured_logger import get_structured_logger
-from infrastructure.monitoring.distributed_cache import get_distributed_cache_manager, cached_processing
+# Removed monitoring imports - monitoring disabled
 from .enhanced_error_recovery import RobustResumeProcessor, get_error_recovery_manager
-from infrastructure.monitoring.circuit_breaker import file_processing_circuit_breaker
+# Removed circuit breaker import - monitoring disabled
 
 logger = get_logger()
 structured_logger = get_structured_logger("batch_processor")
@@ -78,7 +78,8 @@ class MemoryOptimizedBatchProcessor:
             cpu_count = mp.cpu_count()
             self.config.max_workers = min(cpu_count * 2, 8)  # Cap at 8
         
-        self.cache_manager = get_distributed_cache_manager() if self.config.enable_caching else None
+        # Disabled cache manager - monitoring removed
+        self.cache_manager = None
         self.recovery_manager = get_error_recovery_manager()
         self.robust_processor = RobustResumeProcessor()
         
@@ -332,7 +333,7 @@ class MemoryOptimizedBatchProcessor:
         
         return results
     
-    @file_processing_circuit_breaker
+    # Removed circuit breaker decorator - monitoring disabled
     def _process_single_item(self, item: BatchItem) -> BatchResult:
         """Process a single item with caching and error handling."""
         start_time = time.time()

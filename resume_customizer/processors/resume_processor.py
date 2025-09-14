@@ -44,7 +44,7 @@ except ImportError:
     processing_logger = get_structured_logger("processing")
     
 from enhancements.error_handling_enhanced import handle_errors, ErrorSeverity, ErrorHandlerContext
-from infrastructure.monitoring.circuit_breaker import file_processing_circuit_breaker
+# Removed circuit breaker import - monitoring disabled
 
 try:
     from enhancements.enhanced_error_recovery import RobustResumeProcessor, get_error_recovery_manager
@@ -53,7 +53,7 @@ except ImportError:
         def __init__(self): pass
     def get_error_recovery_manager(): return None
     
-from infrastructure.monitoring.distributed_cache import cached_processing, get_distributed_cache_manager
+# Removed distributed cache import - monitoring disabled
 
 try:
     from enhancements.metrics_analytics_enhanced import record_resume_processed, record_metrics
@@ -360,8 +360,8 @@ class ResumeProcessor:
         self.file_processor = FileProcessor()
         # Use enhanced robust processor for error recovery
         self.robust_processor = RobustResumeProcessor()
-        # Use distributed cache instead of local cache
-        self.cache_manager = get_distributed_cache_manager()
+        # Disabled distributed cache - monitoring removed
+        self.cache_manager = None
         # Progress tracking
         self.progress_tracker = get_progress_tracker()
         # Legacy support - Advanced cache: (filename, text, manual_text) -> result
@@ -384,8 +384,7 @@ class ResumeProcessor:
                 pass
         
     @record_metrics("resume_processing")
-    @file_processing_circuit_breaker
-    @cached_processing(ttl=3600)
+    # Removed circuit breaker and cache decorators - monitoring disabled
     def process_single_resume(
         self, 
         file_data: Dict[str, Any], 

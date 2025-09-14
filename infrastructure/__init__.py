@@ -26,7 +26,5 @@ __all__ = [
     'get_file_validator',
     'EmailValidator',
     'TextValidator',
-    'get_performance_monitor',
-    'file_processing_circuit_breaker',
-    'get_distributed_cache_manager'
+    # Removed monitoring functions
 ]

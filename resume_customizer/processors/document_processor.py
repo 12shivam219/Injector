@@ -12,8 +12,7 @@ from docx import Document
 
 from config import DOC_CONFIG, PARSING_CONFIG
 from infrastructure.utilities.logger import get_logger
-from infrastructure.monitoring.performance_cache import cached, cache_key_for_file, get_cache_manager
-from infrastructure.monitoring.performance_monitor import performance_decorator
+# Removed performance monitoring imports
 from enhancements.error_handling_enhanced import handle_errors, ErrorSeverity, ErrorHandlerContext
 from infrastructure.utilities.memory_optimizer import get_memory_optimizer, with_memory_management
 from resume_customizer.formatters.bullet_formatter import BulletFormatter, BulletFormatting
@@ -524,7 +523,7 @@ class DocumentProcessor:
         self.project_detector = ProjectDetector()
         self.point_distributor = PointDistributor()
     
-    @performance_decorator(monitor_memory=True, monitor_cpu=True)
+    # Removed performance monitoring decorator
     def add_points_to_project(self, doc: Document, project_info: Dict) -> int:
         """Add tech stack points to a project with proper formatting preservation."""
         if 'insertion_point' not in project_info:
@@ -732,7 +731,7 @@ class DocumentProcessor:
         logger.info(f"Detected document bullet marker: '{detected_marker}'")
         return detected_marker
     
-    @performance_decorator("document_processing", operation_type="doc_processing")
+    # Removed performance monitoring decorator
     def process_document(self, file_data: Dict) -> Dict[str, Any]:
         """
         Process a document by adding tech stack points to projects using round-robin distribution.
@@ -921,7 +920,7 @@ class StreamingDocumentProcessor:
         self.formatter = BulletFormatter()
         self.project_detector = ProjectDetector()
     
-    @performance_decorator("streaming_doc_processing", operation_type="stream_processing")
+    # Removed performance monitoring decorator
     def process_large_document(self, file_data: Dict) -> Dict[str, Any]:
         """
         Process large documents using streaming approach to minimize memory usage.

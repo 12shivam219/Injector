@@ -2,7 +2,7 @@ import streamlit as st
 import time
 from typing import List, Dict, Any, Optional
 
-from infrastructure.monitoring.performance_monitor import performance_decorator
+# Removed performance monitor import - monitoring disabled
 from utilities.logger import get_logger
 from infrastructure.async_processing.async_integration import process_documents_async, get_async_results
 
@@ -117,7 +117,7 @@ class BulkProcessor:
         self.resume_manager = resume_manager
         self.ui = __import__("ui.components", fromlist=["UIComponents"]).UIComponents()
 
-    @performance_decorator("bulk_processing")
+    # Removed performance decorator - monitoring disabled
     def process_bulk_resumes(self, ready_files, files_data, max_workers, show_progress, performance_stats, bulk_email_mode):
         """Process multiple resumes in bulk mode."""
         from infrastructure.security.validators import get_rate_limiter

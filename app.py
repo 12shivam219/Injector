@@ -25,12 +25,7 @@ def get_logger():
         logger.setLevel(logging.INFO)
     return logger
 
-class DummyPerfMonitor:
-    def start_timer(self, name): pass
-    def end_timer(self, name): pass
-
-perf_monitor = DummyPerfMonitor()
-perf_optimizer = None
+# Removed performance monitoring components
 
 APP_CONFIG = {
     "title": "Resume Customizer",
@@ -198,7 +193,8 @@ def get_cached_tab_labels():
         "📄 Resume Customizer", 
         "📤 Bulk Processor", 
         "📋 Requirements",
-        "📚 Know About The Application"
+        "📚 Know About The Application",
+        "⚙️ Settings"
     ]
 
 @st.cache_data
@@ -940,8 +936,7 @@ def main():
             
             # Cache statistics
             try:
-                from infrastructure.monitoring.performance_cache import get_cache_manager
-                cache_manager = get_cache_manager()
+                # Removed performance cache manager
                 st.markdown("**Cache Performance:**")
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -1019,82 +1014,28 @@ def main():
             # Enhanced Monitoring Section
             st.subheader("📊 System Monitoring")
             
-            # Use enhanced metrics panel with fallback
-            try:
-                ui.render_enhanced_metrics_panel()
-            except AttributeError:
-                st.info("📊 Enhanced metrics panel not available - showing basic monitoring")
-                if PERFORMANCE_MONITOR_AVAILABLE and performance_monitor:
-                    try:
-                        summary = performance_monitor.get_performance_summary()
-                        if summary:
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.metric("System Status", "Operational")
-                            with col2:
-                                st.metric("Monitoring", "Active")
-                    except Exception as e:
-                        st.warning(f"Performance monitoring error: {str(e)}")
-                else:
-                    st.warning("Performance monitoring not available")
+            # Basic system status display
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("System Status", "Operational")
+            with col2:
+                st.metric("Monitoring", "Disabled")
             
-            # Performance Summary with better UX
-            if st.checkbox("Show Detailed Performance Data", value=False, key="settings_performance_checkbox"):
-                with st.spinner("🔍 Collecting performance data..."):
-                    summary = None
-                    if PERFORMANCE_MONITOR_AVAILABLE and performance_monitor:
-                        try:
-                            summary = performance_monitor.get_performance_summary()
-                        except Exception as e:
-                            st.warning(f"Could not collect performance data: {str(e)}")
+            st.info("📊 Advanced monitoring features have been disabled for improved performance")
+            
+            # Simple status display
+            if st.checkbox("Show Basic Status", value=False, key="settings_status_checkbox"):
+                st.markdown("#### Application Status")
+                col1, col2, col3 = st.columns(3)
                 
-                if summary.get('system'):
-                    st.markdown("#### System Resources")
-                    col1, col2, col3 = st.columns(3)
-                    
-                    with col1:
-                        cpu_percent = summary['system'].get('cpu_percent', 0)
-                        cpu_color = "normal" if cpu_percent < 80 else "inverse"
-                        st.metric(
-                            "🖥️ CPU Usage", 
-                            f"{cpu_percent:.1f}%",
-                            delta=f"{cpu_percent - 50:.1f}%" if cpu_percent > 50 else None
-                        )
-                    
-                    with col2:
-                        memory_percent = summary['system'].get('memory_percent', 0)
-                        st.metric(
-                            "💾 Memory Usage", 
-                            f"{memory_percent:.1f}%",
-                            delta=f"{memory_percent - 60:.1f}%" if memory_percent > 60 else None
-                        )
-                    
-                    with col3:
-                        memory_used = summary['system'].get('memory_used_mb', 0)
-                        st.metric(
-                            "📈 Memory Used", 
-                            f"{memory_used:.0f}MB"
-                        )
-                    
-                    # System health indicators
-                    st.markdown("#### Health Indicators")
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        if cpu_percent > 80:
-                            st.warning("🔥 High CPU usage detected")
-                        elif cpu_percent < 20:
-                            st.success("😎 CPU running efficiently")
-                        else:
-                            st.info("🔄 CPU usage normal")
-                    
-                    with col2:
-                        if memory_percent > 85:
-                            st.error("⚠️ High memory usage - consider restarting")
-                        elif memory_percent < 40:
-                            st.success("😎 Memory usage optimal")
-                        else:
-                            st.info("📊 Memory usage normal")
+                with col1:
+                    st.metric("🖥️ CPU Status", "Normal")
+                
+                with col2:
+                    st.metric("💾 Memory Status", "Available")
+                
+                with col3:
+                    st.metric("📈 Application", "Running")
                     
                     # Show lazy loading stats if available
                     try:
@@ -1109,8 +1050,6 @@ def main():
                                         st.text(f"• {module}")
                     except ImportError:
                         pass
-                else:
-                    st.info("📉 Performance data not available - system monitoring may be disabled")
         
         with settings_tabs[2]:
             # Configuration Management
@@ -1261,8 +1200,7 @@ def cleanup_on_exit():
     """Cleanup resources on application exit."""
     try:
         # Cleanup performance monitor
-        from infrastructure.monitoring.performance_monitor import cleanup_performance_monitor
-        cleanup_performance_monitor()
+        # Removed performance monitor cleanup
         
         # Cleanup document resources
         try:

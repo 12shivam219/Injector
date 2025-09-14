@@ -11,11 +11,16 @@ from collections import defaultdict
 from typing import List, Dict, Any, Optional
 from email.message import EmailMessage
 
-from config import SMTP_SERVERS, ERROR_MESSAGES
+try:
+    from config import SMTP_SERVERS, ERROR_MESSAGES
+except ImportError:
+    # Fallback if SMTP_SERVERS not defined in config
+    SMTP_SERVERS = {}
+    ERROR_MESSAGES = {}
 from utilities.retry_handler import get_retry_handler, with_retry
 from utilities.logger import get_logger
 from infrastructure.security.security_enhancements import SecurePasswordManager, InputSanitizer, rate_limit
-from infrastructure.monitoring.circuit_breaker import smtp_circuit_breaker
+# Removed circuit breaker import - monitoring disabled
 from enhancements.metrics_analytics_enhanced import record_email_sent
 from enhancements.email_templates_enhanced import get_template_manager
 
@@ -127,7 +132,7 @@ class EmailSender:
             logger.warning(f"Password decryption failed: {e}")
             return password
     
-    @smtp_circuit_breaker
+    # Removed circuit breaker decorator - monitoring disabled
     @with_retry(max_attempts=3, base_delay=2.0)
     @rate_limit("email_send", limit=10, window=300)  # 10 emails per 5 minutes
     def send_single_email(

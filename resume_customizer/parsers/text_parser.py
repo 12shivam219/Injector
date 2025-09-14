@@ -8,7 +8,7 @@ from typing import List, Tuple, Optional, Dict
 from functools import lru_cache
 from config import PARSING_CONFIG
 from infrastructure.utilities.logger import get_logger
-from infrastructure.monitoring.performance_cache import cached, get_cache_manager
+# Removed performance monitoring imports
 from infrastructure.security.security_enhancements import InputSanitizer
 
 logger = get_logger()
@@ -145,7 +145,7 @@ class TechStackParser:
             logger.warning(f"Error parsing original format: {e}")
             return [], []
     
-    @cached(ttl_seconds=3600)  # Cache for 1 hour
+    # Removed caching decorator for simpler operation
     def parse_tech_stacks(self, text: str) -> Tuple[List[str], List[str]]:
         """
         Parse tech stacks from text, trying multiple formats and caching results.
