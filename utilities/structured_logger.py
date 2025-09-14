@@ -1,57 +1,57 @@
 """
-Structured logger module for backward compatibility.
+DEPRECATED: Structured logger - use infrastructure.utilities.structured_logger instead.
+This module provides backward compatibility shims.
 """
-import logging
-import json
-from typing import Any, Dict, Optional
-from datetime import datetime
+import warnings
+from infrastructure.utilities.structured_logger import (
+    StructuredLogger as InfraStructuredLogger,
+    get_structured_logger as get_infra_structured_logger,
+    with_structured_logging,
+    log_performance,
+    LoggingManager,
+    LogAnalytics
+)
 
+# Issue deprecation warning
+warnings.warn(
+    "utilities.structured_logger is deprecated. Use infrastructure.utilities.structured_logger instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+# Compatibility wrapper for old StructuredLogger interface
 class StructuredLogger:
-    """Logger that outputs structured JSON logs."""
+    """Backward compatibility wrapper for infrastructure StructuredLogger."""
     
-    def __init__(self, name: str = None):
-        self.logger = logging.getLogger(name or __name__)
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO)
+    def __init__(self, name=None):
+        self._logger = get_infra_structured_logger(name or "legacy")
     
-    def log_structured(self, level: str, message: str, **kwargs):
+    def log_structured(self, level, message, **kwargs):
         """Log a structured message."""
-        log_entry = {
-            'timestamp': datetime.now().isoformat(),
-            'level': level.upper(),
-            'message': message,
-            **kwargs
-        }
-        
-        log_level = getattr(logging, level.upper(), logging.INFO)
-        self.logger.log(log_level, json.dumps(log_entry))
+        getattr(self._logger, level.lower())(message, **kwargs)
     
-    def info(self, message: str, **kwargs):
+    def info(self, message, **kwargs):
         """Log info message."""
-        self.log_structured('info', message, **kwargs)
+        self._logger.info(message, **kwargs)
     
-    def error(self, message: str, **kwargs):
+    def error(self, message, **kwargs):
         """Log error message."""
-        self.log_structured('error', message, **kwargs)
+        self._logger.error(message, **kwargs)
     
-    def warning(self, message: str, **kwargs):
+    def warning(self, message, **kwargs):
         """Log warning message."""
-        self.log_structured('warning', message, **kwargs)
+        self._logger.warning(message, **kwargs)
     
-    def debug(self, message: str, **kwargs):
+    def debug(self, message, **kwargs):
         """Log debug message."""
-        self.log_structured('debug', message, **kwargs)
+        self._logger.debug(message, **kwargs)
 
-def get_structured_logger(name: str = None) -> StructuredLogger:
+def get_structured_logger(name=None):
     """Get a structured logger instance."""
     return StructuredLogger(name)
 
 # Create a default processing logger instance
 processing_logger = get_structured_logger("processing")
 
-# Backward compatibility
-__all__ = ['StructuredLogger', 'get_structured_logger', 'processing_logger']
+# Backward compatibility exports
+__all__ = ['StructuredLogger', 'get_structured_logger', 'processing_logger', 'with_structured_logging', 'log_performance']

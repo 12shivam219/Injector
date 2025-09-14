@@ -1,35 +1,33 @@
 """
-Logger utilities for backward compatibility.
+DEPRECATED: Logger utilities - use infrastructure.utilities.logger instead.
+This module provides backward compatibility shims.
 """
-import logging
-from typing import Optional
+import warnings
+from infrastructure.utilities.logger import (
+    ApplicationLogger,
+    get_logger as get_infrastructure_logger,
+    log_function_call,
+    display_logs_in_sidebar
+)
 
-def get_logger(name: Optional[str] = None) -> logging.Logger:
+# Issue deprecation warning
+warnings.warn(
+    "utilities.logger is deprecated. Use infrastructure.utilities.logger instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+def get_logger(name=None):
     """
-    Get a configured logger instance.
+    Backward compatibility wrapper for infrastructure logger.
     
     Args:
-        name: Logger name (defaults to calling module)
+        name: Logger name (ignored, uses ApplicationLogger instead)
         
     Returns:
-        Configured logger instance
+        ApplicationLogger instance
     """
-    if name is None:
-        name = __name__
-    
-    logger = logging.getLogger(name)
-    
-    # Configure basic logging if not already configured
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
-    
-    return logger
+    return get_infrastructure_logger()
 
-# Backward compatibility
-__all__ = ['get_logger']
+# Backward compatibility exports
+__all__ = ['get_logger', 'log_function_call', 'display_logs_in_sidebar']
