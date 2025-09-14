@@ -104,35 +104,51 @@ def get_cached_services() -> Dict[str, Any]:
     """Get cached instances of all services."""
     services = {}
     
+    # UI Components
     try:
-        # UI Components
         from ui.components import UIComponents
         services['ui_components'] = UIComponents()
-        
-        # Resume Manager
-        from resume_customizer.processors.resume_processor import ResumeProcessor
-        services['resume_processor'] = ResumeProcessor()
-        
-        # Requirements Manager
-        from database.requirements_manager_db import RequirementsManager
-        services['requirements_manager'] = RequirementsManager()
-        
-        # Analytics Manager
-        from infrastructure.monitoring.analytics import AnalyticsManager
-        services['analytics'] = AnalyticsManager()
-        
-        # Bulk Processor
-        from resume_customizer.processors.bulk_processor import BulkProcessor
-        services['bulk_processor'] = BulkProcessor()
-        
-        return services
-        
     except ImportError as e:
-        logging.error(f"Failed to initialize services: {str(e)}")
-        st.error("❌ Failed to initialize required services. Check logs for details.")
-        return {}
         services['ui_components'] = None
         logging.warning(f"Could not load UI components: {e}")
+    
+    # Resume Manager
+    try:
+        from resume_customizer.processors.resume_processor import ResumeProcessor
+        services['resume_processor'] = ResumeProcessor()
+    except ImportError as e:
+        services['resume_processor'] = None
+        logging.warning(f"Could not load resume processor: {e}")
+    
+    # Requirements Manager
+    try:
+        from database.requirements_manager_db import RequirementsManager
+        services['requirements_manager'] = RequirementsManager()
+    except ImportError as e:
+        services['requirements_manager'] = None
+        logging.warning(f"Could not load requirements manager: {e}")
+    
+    # Analytics Manager
+    try:
+        from infrastructure.monitoring.analytics import AnalyticsManager
+        services['analytics'] = AnalyticsManager()
+    except ImportError as e:
+        services['analytics'] = None
+        logging.warning(f"Could not load analytics manager: {e}")
+    
+    # Bulk Processor
+    try:
+        from ui.bulk_processor import BulkProcessor
+        from resume_customizer.processors.resume_processor import get_resume_manager
+        resume_manager = get_resume_manager("v2.2")
+        if resume_manager:
+            services['bulk_processor'] = BulkProcessor(resume_manager=resume_manager)
+        else:
+            services['bulk_processor'] = None
+            logging.warning("Resume manager initialization failed for bulk processor")
+    except ImportError as e:
+        services['bulk_processor'] = None
+        logging.warning(f"Could not load bulk processor: {e}")
     
     # Secure UI Components  
     try:
@@ -155,23 +171,6 @@ def get_cached_services() -> Dict[str, Any]:
     except ImportError as e:
         services['resume_tab_handler'] = None
         logging.warning(f"Could not load resume tab handler: {e}")
-    
-    # Bulk Processor
-    try:
-        from ui.bulk_processor import BulkProcessor
-        from resume_customizer.processors.resume_processor import get_resume_manager
-        services['bulk_processor'] = BulkProcessor(resume_manager=get_resume_manager("v2.2"))
-    except ImportError as e:
-        services['bulk_processor'] = None
-        logging.warning(f"Could not load bulk processor: {e}")
-    
-    # Requirements Manager
-    try:
-        from requirements_integration import RequirementsManager
-        services['requirements_manager'] = RequirementsManager()
-    except ImportError as e:
-        services['requirements_manager'] = None
-        logging.warning(f"Could not load requirements manager: {e}")
     
     # Application Guide
     try:

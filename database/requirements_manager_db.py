@@ -790,4 +790,7 @@ class PostgreSQLRequirementsManager:
         """Get database health status"""
         return db_manager.health_check()
 
+# Create alias for backward compatibility
+RequirementsManager = PostgreSQLRequirementsManager
+
 
