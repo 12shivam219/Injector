@@ -11,7 +11,7 @@ maxUploadSize = 200
 maxMessageSize = 200
 baseUrlPath = ""
 enableWebsocketCompression = true
-enableStaticServing = true
+enableStaticServing = false
 headless = true
 address = "0.0.0.0"
 
@@ -30,8 +30,6 @@ font = "sans serif"
 magicEnabled = true
 fastReruns = true
 enforceSerializableSessionState = false
-fixedWidthMode = false
-postProcessing = true
 
 [client]
 showErrorDetails = true
