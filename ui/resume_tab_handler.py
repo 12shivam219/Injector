@@ -6,13 +6,16 @@ import hashlib
 from infrastructure.security.validators import TextValidator
 import logging
 from infrastructure.utilities.logger import get_logger
+from infrastructure.utilities.structured_logger import get_structured_logger
 
 # Initialize logger with fallback
 try:
     logger = get_logger()
+    structured_logger = get_structured_logger("resume_tab_handler")
 except Exception:
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
+    structured_logger = logger
 
 class ResumeTabHandler:
     """Handles individual resume tab functionality."""
@@ -338,7 +341,7 @@ class ResumeTabHandler:
 
         st.markdown("---")
         st.markdown(f"### ✅ Generating Customized Resume: {file.name}")
-        logger.log_user_action("resume_generation", file_name=file.name)
+        structured_logger.user_action("resume_generation", details={"file_name": file.name})
 
         status_placeholder = st.empty()
         def progress_callback(msg):
