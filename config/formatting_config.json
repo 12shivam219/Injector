@@ -1,0 +1,17 @@
+{
+  "bullet_config": {
+    "preferred_markers": ["•", "-", "●"],
+    "default_marker": "- ",
+    "indent_spaces": 2,
+    "preserve_original_formatting": true,
+    "capitalize_first_letter": true,
+    "end_with_period": false
+  },
+  "spacing_config": {
+    "before_paragraph": 0.0,
+    "after_paragraph": 6.0,
+    "line_spacing": 1.15
+  },
+  "max_bullet_points_per_project": 5,
+  "enforce_consistent_bullets": true
+}

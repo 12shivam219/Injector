@@ -85,12 +85,24 @@ class ProjectDetector:
             if self._looks_like_company_date(text):
                 if current_project:
                     projects.append(current_project)
+                
+                # Get company/date info
                 role, company, date_range = self._parse_project_header(text)
+                
+                # Check if next paragraph might be a job title/role
+                next_role = ""
+                if i + 1 < len(paragraphs):
+                    next_text = paragraphs[i + 1].text.strip()
+                    if next_text and not self._is_bullet_point(next_text) and not self._looks_like_company_date(next_text):
+                        # This is likely the job title/role
+                        next_role = next_text
+                        i += 1  # Skip this line in next iteration
+                
                 current_project = ProjectInfo(
-                    name=role or company or f"Project {len(projects)+1}",
+                    name=company or f"Project {len(projects)+1}",
                     start_index=i,
                     end_index=i,
-                    role=role,
+                    role=next_role or role,
                     company=company,
                     date_range=date_range
                 )
@@ -152,7 +164,21 @@ class ProjectDetector:
           - Company - Date
           - Company (Date)
           - Role only
+          - Job title | Company | Industry | Date
         """
+        # Check for the specific format: "Job title | Company | Industry | Date"
+        job_title_pattern = r"^((?:Senior|Junior|Lead|Principal|Staff)?\s*(?:Software|Web|Mobile|Frontend|Backend|Full-stack|Full Stack|UI|UX)?\s*(?:Developer|Engineer|Architect|Designer|Programmer|Consultant))\s*\|(.*?)\|(.*?)\|(.*\d{4}.*)$"
+        match = re.search(job_title_pattern, text, re.IGNORECASE)
+        if match:
+            role = match.group(1).strip()
+            company = match.group(2).strip()
+            industry = match.group(3).strip()  # Industry info
+            date_range = match.group(4).strip()
+            # Include industry in company name for better context
+            if industry:
+                company += f" | {industry}"
+            return role, company, date_range
+            
         if '\n' in text:
             lines = [l.strip() for l in text.splitlines() if l.strip()]
             first_line = lines[0] if lines else text.strip()
@@ -202,6 +228,11 @@ class ProjectDetector:
         has_year = re.search(r"\b(19|20)\d{2}\b", tl) is not None
         has_month = re.search(r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b", tl) is not None
         has_present = 'present' in tl
+
+        # Check for job title | company | industry | date format
+        job_title_pattern = r"^(?:Senior|Junior|Lead|Principal|Staff)?\s*(?:Software|Web|Mobile|Frontend|Backend|Full-stack|Full Stack|UI|UX)?\s*(?:Developer|Engineer|Architect|Designer|Programmer|Consultant)\s*\|.*\|.*\|.*\d{4}"
+        if re.search(job_title_pattern, text, re.IGNORECASE):
+            return True
 
         if has_year or has_month or has_present:
             if len(tl.split()) >= 2:

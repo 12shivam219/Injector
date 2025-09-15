@@ -87,25 +87,67 @@ class DocumentProcessor:
     def _add_points_to_project(self, doc: Document, project: ProjectInfo, 
                                points: List[Dict[str, Any]], document_marker: str) -> int:
         """
-        Add points to a specific project right after the first bullet point.
+        Add points to a specific project after existing bullet points.
         """
         if not points:
             return 0
 
         try:
-            # Find the first bullet paragraph in the project
-            first_bullet_index = None
+            # Find the last bullet paragraph in the project
+            last_bullet_index = None
             for i in range(project.start_index, project.end_index + 1):
                 para = doc.paragraphs[i]
                 if self.bullet_formatter._is_bullet_point(para.text):
-                    first_bullet_index = i
-                    break
-
-            if first_bullet_index is None:
-                # If no bullets exist, insert at the end of project
-                first_bullet_index = project.end_index
-
-            insertion_para = doc.paragraphs[first_bullet_index]
+                    last_bullet_index = i
+            
+            # If no bullets exist, find where to insert them
+            if last_bullet_index is None:
+                # Look for "Responsibilities" or similar heading
+                for i in range(project.start_index, project.end_index + 1):
+                    para = doc.paragraphs[i]
+                    if any(keyword in para.text.lower() for keyword in ["responsibilities", "duties", "achievements"]):
+                        last_bullet_index = i
+                        break
+                
+                # If still not found, find the first bullet-like paragraph after the role line
+                if last_bullet_index is None:
+                    # First try to find any existing bullet points in the project
+                    for i in range(project.start_index, project.end_index + 1):
+                        para = doc.paragraphs[i]
+                        text = para.text.strip()
+                        # Check for common bullet markers or dash at the beginning
+                        if text.startswith('•') or text.startswith('-') or text.startswith('*') or text.startswith('○'):
+                            last_bullet_index = i
+                            break
+                
+                # If still not found and project has a role, find the role line and add after it
+                if last_bullet_index is None and project.role:
+                    role_index = None
+                    # Find the role line
+                    for i in range(project.start_index, project.end_index + 1):
+                        if project.role in doc.paragraphs[i].text:
+                            role_index = i
+                            break
+                    
+                    # If role found, look for the first non-empty paragraph after it
+                    if role_index is not None:
+                        for i in range(role_index + 1, project.end_index + 1):
+                            if doc.paragraphs[i].text.strip():
+                                last_bullet_index = i - 1  # Insert before this non-empty paragraph
+                                break
+                        
+                        # If no non-empty paragraph found, use the role line
+                        if last_bullet_index is None:
+                            last_bullet_index = role_index
+                
+                # If still not found, use the line after the company/date header
+                if last_bullet_index is None:
+                    last_bullet_index = project.start_index
+                    # Ensure we're not out of bounds
+                    if last_bullet_index >= len(doc.paragraphs):
+                        last_bullet_index = project.end_index
+            
+            insertion_para = doc.paragraphs[last_bullet_index]
 
             # Get bullet formatting (fallback to document marker)
             existing_formatting = self._get_project_bullet_formatting(doc, project, document_marker)

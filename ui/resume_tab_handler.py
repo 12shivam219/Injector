@@ -179,40 +179,78 @@ class ResumeTabHandler:
                 async_mode = False
                 st.info("📋 Background processing unavailable (Celery not configured)")
             
-            if st.button("✅ Generate & Send", key=f"generate_{unique_key}"):
-                # Validate input before processing
-                if not text_input.strip() and not manual_text.strip():
-                    st.error(f"⚠️ Please enter tech stack data for {file.name} before generating.")
-                    return
-                    
-                # Prepare file data for processing
-                file_data_for_processing = {
-                    'filename': file.name,
-                    'file': file,
-                    'text': text_input,
-                    'manual_text': manual_text,
-                    'recipient_email': recipient_email,
-                    'sender_email': sender_email,
-                    'sender_password': sender_password,
-                    'smtp_server': smtp_server,
-                    'smtp_port': smtp_port,
-                    'email_subject': email_subject,
-                    'email_body': email_body
-                }
-                if async_mode:
-                    try:
-                        task = self.resume_manager.process_single_resume_async(file_data_for_processing)
-                        # Store task ID in session state for status checking
-                        task_id = getattr(task, 'id', getattr(task, 'task_id', str(task)))
-                        st.session_state[f'async_task_{unique_key}'] = task_id
-                        st.success(f"🎫 Submitted to background queue. Task ID: {task_id}")
-                        st.info("📋 Use the 'Check Status' button below to monitor progress.")
-                    except Exception as e:
-                        st.error(f"❌ Failed to submit async task: {e}")
-                        st.warning("Falling back to synchronous processing...")
-                        self.handle_generation(file, file_data_for_processing)
-                else:
-                    self.handle_generation(file, file_data_for_processing)
+            # Generate button
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    if st.button("🚀 Generate Resume", key=f"generate_{unique_key}"):
+                        # Validate input before processing
+                        if not text_input.strip() and not manual_text.strip():
+                            st.error(f"⚠️ Please enter tech stack data for {file.name} before generating.")
+                            return
+                         
+                        # Prepare file data for processing (without email)
+                        file_data_for_processing = {
+                            'filename': file.name,
+                            'file': file,
+                            'text': text_input,
+                            'manual_text': manual_text
+                        }
+                        
+                        if async_mode:
+                            try:
+                                task = self.resume_manager.process_single_resume_async(file_data_for_processing)
+                                # Store task ID in session state for status checking
+                                task_id = getattr(task, 'id', getattr(task, 'task_id', str(task)))
+                                st.session_state[f'async_task_{unique_key}'] = task_id
+                                st.success(f"🎫 Submitted to background queue. Task ID: {task_id}")
+                                st.info("📋 Use the 'Check Status' button below to monitor progress.")
+                            except Exception as e:
+                                st.error(f"❌ Failed to submit async task: {e}")
+                                st.warning("Falling back to synchronous processing...")
+                                self.handle_generation(file, file_data_for_processing)
+                        else:
+                            self.handle_generation(file, file_data_for_processing)
+                
+                # Email sending button
+                with col2:
+                    # Only show the Send Email button if a resume has been generated
+                    if st.button("📧 Send Generated Resume", key=f"send_email_{unique_key}"):
+                        # Check if resume has been generated
+                        generated_resume = st.session_state.get(f'last_generated_resume_{unique_key}')
+                        if not generated_resume:
+                            st.error("❌ Please generate a resume first before sending an email.")
+                            return
+                            
+                        # Validate email configuration
+                        validation_result = self.resume_manager.validate_email_config({
+                            'recipient': recipient_email,
+                            'sender': sender_email,
+                            'password': sender_password,
+                            'smtp_server': smtp_server,
+                            'smtp_port': smtp_port
+                        })
+                        
+                        if not validation_result['valid']:
+                            missing = validation_result['missing_fields']
+                            st.error(f"❌ Email configuration incomplete. Missing: {', '.join(missing)}")
+                        elif not recipient_email:
+                            st.error("❌ Recipient email is required to send the resume.")
+                        else:
+                            # Prepare email data for sending
+                            email_data = {
+                                'recipient': recipient_email,
+                                'sender': sender_email,
+                                'password': sender_password,
+                                'smtp_server': smtp_server,
+                                'smtp_port': smtp_port,
+                                'subject': email_subject,
+                                'body': email_body,
+                                'attachment': generated_resume.get('modified_content'),
+                                'filename': file.name
+                            }
+                            # Call email sending function
+                            self.handle_email_sending(email_data)
         
         # Separate status check button outside the main generate button
         if async_mode and st.session_state.get(f'async_task_{unique_key}'):
@@ -357,42 +395,88 @@ class ResumeTabHandler:
                     st.markdown("📝 **Updated Resume Content:**")
                     st.info("💡 Install 'mammoth' for better Word format display: `pip install mammoth`")
                     
-                    # Create highlighted text version
+                    # Create highlighted text version with improved formatting
                     preview_text = result['preview_content']
                     
-                    # Add markers to new points
+                    # Add visual markers to new points with color coding
                     for project, mapping in result['project_points_mapping'].items():
                         for point in mapping['points']:
                             clean_point = point.lstrip('• ').strip()
                             if clean_point in preview_text:
                                 preview_text = preview_text.replace(clean_point, f"🆕 {clean_point} 🆕")
                     
-                    st.text_area("Updated Resume Content (🆕 = newly added points)", value=preview_text, height=600)
+                    # Create tabs for different preview views
+                    preview_tabs = st.tabs(["📄 Full Preview", "✨ New Points Only", "📊 Visual Diff", "⚖️ Before/After"])
+                    
+                    with preview_tabs[0]:
+                        st.text_area("Complete Resume Content (🆕 = newly added points)", value=preview_text, height=500)
+                    
+                    with preview_tabs[1]:
+                        # Show only the new points organized by project
+                        st.markdown("### 📌 New Points by Project")
+                        for project, mapping in result['project_points_mapping'].items():
+                            if mapping['points']:
+                                st.markdown(f"**{project}**")
+                                for point in mapping['points']:
+                                    st.markdown(f"• {point.lstrip('• ').strip()}")
+                                st.markdown("---")
+                    
+                    with preview_tabs[2]:
+                        # Create a visual diff representation
+                        st.markdown("### 📊 Visual Difference")
+                        st.markdown("This view highlights the changes that will be made to your resume.")
+                        
+                        # Create a styled version of the preview text
+                        styled_text = preview_text.replace("== ", "<h4>").replace(" ==", "</h4>")
+                        styled_text = styled_text.replace("🆕 ", "<span style='background-color: #CCFFCC; padding: 2px 4px; border-radius: 3px;'>").replace(" 🆕", "</span>")
+                        st.markdown(styled_text, unsafe_allow_html=True)
+                        
+                    with preview_tabs[3]:
+                        # Show before/after comparison
+                        st.markdown("### ⚖️ Before vs After Comparison")
+                        st.markdown(f"Last updated: {result.get('last_updated', 'N/A')}")
+                        
+                        # Create two columns for side-by-side comparison
+                        before_col, after_col = st.columns(2)
+                        
+                        with before_col:
+                            st.markdown("#### 📄 Original Resume")
+                            st.text_area("Before changes", value=result.get('original_content', 'Original content not available'), height=400)
+                            
+                        with after_col:
+                            st.markdown("#### 📝 Updated Resume")
+                            st.text_area("After changes", value=preview_text, height=400)
 
-                # Final summary section
+                # Enhanced summary section
                 st.markdown("---")
                 st.markdown("### 🎯 PREVIEW SUMMARY")
                 
-                summary_col1, summary_col2 = st.columns(2)
+                # Use 3 columns for more detailed information
+                summary_col1, summary_col2, summary_col3 = st.columns(3)
                 with summary_col1:
-                    st.markdown("**What will happen when you generate:**")
+                    st.markdown("**What will happen:**")
                     st.markdown(f"• **{result['points_added']} new bullet points** will be added")
-                    st.markdown(f"• Points will be distributed across **{result['projects_count']} projects**")
+                    st.markdown(f"• Points across **{result['projects_count']} projects**")
                     st.markdown(f"• Tech stacks: **{', '.join(result['tech_stacks_used'])}**")
                 
                 with summary_col2:
-                    st.markdown("**Where to look:**")
-                    st.markdown("• 🆕 **NEW POINTS** section shows what will be added")
-                    st.markdown("• 📄 **FULL RESUME PREVIEW** shows the complete result")
-                    if 'mammoth' in str(type(st)):
-                        st.markdown("• 💚 **Green highlighted points** are new additions")
+                    st.markdown("**Distribution Details:**")
+                    for project, mapping in result['project_points_mapping'].items():
+                        if mapping['points']:
+                            st.markdown(f"• **{project}**: {len(mapping['points'])} points")
+                
+                with summary_col3:
+                    st.markdown("**Preview Guide:**")
+                    st.markdown("• 📄 **Full Preview** - Complete resume")
+                    st.markdown("• ✨ **New Points** - Only additions")
+                    st.markdown("• 📊 **Visual Diff** - Highlighted changes")
                 
                 st.success("✅ Preview completed! If everything looks good, click 'Generate & Send' to create your customized resume.")
             except Exception as e:
                 st.error(f"❌ Error generating preview: {e}")
 
     def handle_generation(self, file, file_data):
-        """Handle resume generation and email sending with async/caching integration."""
+        """Handle the resume generation process and display results"""
         from infrastructure.security.validators import get_rate_limiter
         user_id = st.session_state.get('user_id', 'anonymous')
         rate_limiter = get_rate_limiter()
@@ -415,37 +499,72 @@ class ResumeTabHandler:
                 return
 
             st.success(f"✅ Resume processed with {result['points_added']} points added!")
-            email_data = result['email_data']
-            valid = self.resume_manager.validate_email_config(email_data)['valid']
-
-            if valid:
-                try:
-                    email_res = self.resume_manager.send_single_email(
-                        email_data['smtp_server'], email_data['smtp_port'],
-                        email_data['sender'], email_data['password'],
-                        email_data['recipient'], email_data['subject'],
-                        email_data['body'], result['buffer'], file.name
-                    )
-                    if email_res['success']:
-                        st.success(f"📤 Email sent to {email_data['recipient']}")
-                    else:
-                        st.error(f"❌ Email failed: {email_res['error']}")
-                except Exception as e:
-                    st.error(f"❌ Email sending failed: {e}")
+            
+            # Provide download link
+            if 'buffer' in result:
+                b64 = base64.b64encode(result['buffer']).decode()
+                link = f'<a href="data:application/octet-stream;base64,{b64}" download="{file.name}">📥 Download</a>'
+                st.markdown(link, unsafe_allow_html=True)
+                # Store buffer as modified_content if it doesn't exist
+                if not 'modified_content' in result:
+                    result['modified_content'] = result['buffer']
+            elif 'modified_content' in result:
+                b64 = base64.b64encode(result['modified_content']).decode()
+                link = f'<a href="data:application/octet-stream;base64,{b64}" download="{file.name}">📥 Download</a>'
+                st.markdown(link, unsafe_allow_html=True)
             else:
-                missing = self.resume_manager.validate_email_config(email_data)['missing_fields']
-                st.warning(f"⚠️ Email skipped—Missing: {', '.join(missing)}")
-
-            # Provide download link regardless of email status
-            b64 = base64.b64encode(result['buffer']).decode()
-            link = f'<a href="data:application/octet-stream;base64,{b64}" download="{file.name}">📥 Download</a>'
-            st.markdown(link, unsafe_allow_html=True)
+                st.warning("⚠️ No downloadable content available.")
+                
             st.success(f"🎉 {file.name} processed successfully!")
+            
+            # Store the result in session state for email sending
+            unique_key = f"{file.name}_{hashlib.md5(file.read()).hexdigest()[:8]}"
+            file.seek(0)  # Reset file pointer
+            # Ensure result has modified_content for email attachment
+            if 'buffer' in result and not 'modified_content' in result:
+                result['modified_content'] = result['buffer']
+            st.session_state[f'last_generated_resume_{unique_key}'] = result
+            
+            # Display info message about downloading or sending
+            st.info("📋 You can download your resume or use the 'Send Generated Resume' button to email it.")
             
             # Show audit log if available
             if hasattr(self.resume_manager, '_audit_log'):
                 with st.expander("🔍 Audit Log", expanded=False):
                     for entry in self.resume_manager._audit_log[-5:]:
                         st.code(str(entry))
+                        
+    def handle_email_sending(self, email_data):
+        """Handle the email sending process and display results"""
+        try:
+            # Validate that we have a generated resume
+            if not email_data.get('attachment'):
+                st.error("❌ No resume content available to send. Please generate a resume first.")
+                return
+            
+            structured_logger.user_action("email_sending", details={"recipient": email_data.get('recipient')})
+            
+            with st.spinner("📧 Sending email..."):
+                # Send the email with attachment
+                result = self.resume_manager.send_single_email(
+                    email_data['smtp_server'], 
+                    email_data['smtp_port'],
+                    email_data['sender'], 
+                    email_data['password'],
+                    email_data['recipient'], 
+                    email_data['subject'],
+                    email_data['body'], 
+                    email_data['attachment'], 
+                    email_data['filename']
+                )
+                
+                if result and result.get('success'):
+                    st.success(f"✅ Email sent successfully to {email_data['recipient']}!")
+                else:
+                    error_msg = result.get('error', 'Unknown error')
+                    st.error(f"❌ Failed to send email: {error_msg}")
+        except Exception as e:
+            st.error(f"❌ Error sending email: {str(e)}")
+            logging.error(f"Error in handle_email_sending: {str(e)}", exc_info=True)
 
 

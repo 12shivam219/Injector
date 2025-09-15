@@ -59,6 +59,9 @@ A comprehensive resume customization platform with advanced multi-user features,
 - **Format Preservation**: Maintains original formatting and styles
 - **Version Control**: Track resume versions and changes
 - **Template System**: Save and reuse resume templates
+- **Intelligent Point Distribution**: Sophisticated algorithm for optimal tech stack distribution
+- **Customizable Formatting Rules**: Configuration system for bullet points and formatting styles
+- **Enhanced Preview Feature**: Multi-view preview with before/after comparison and visual diff
 
 ## 🚀 Quick Start
 
@@ -117,7 +120,12 @@ AWS: • Deployed applications using EC2 and S3 • Managed databases with RDS
 ### 4. Preview Changes
 
 - Click "🔍 Preview Changes" to see exactly what will be modified
-- Review the changes before processing
+- Multiple preview views:
+  - Full Preview: Complete resume with highlighted changes
+  - New Points Only: View only the additions by project
+  - Visual Diff: Color-coded visualization of changes
+  - Before/After: Side-by-side comparison
+- Detailed distribution statistics showing points per project
 
 ### 5. Generate & Send
 
@@ -129,8 +137,10 @@ AWS: • Deployed applications using EC2 and S3 • Managed databases with RDS
 ### Core Components
 
 - **Resume Parser**: Finds projects and responsibilities sections
-- **Point Distributor**: Distributes tech points across top 3 projects
+- **Point Distributor**: Intelligent algorithm for optimal tech stack distribution
 - **Format Preserver**: Maintains original document formatting
+- **Formatting Configuration**: Customizable bullet points and formatting styles
+- **Enhanced Preview**: Multi-view preview with visual diff and comparison
 - **Email Manager**: SMTP connection pooling and batch sending
 - **Parallel Processor**: Multi-threaded resume processing
 
@@ -200,6 +210,9 @@ resume-customizer/
 │   ├── lazy_imports.py
 │   └── retry_handler.py
 │
+├── 📁 config/                       # Configuration files
+│   └── formatting_config.json       # Formatting rules configuration
+│
 ├── 📁 database/                    # Database modules
 │   ├── __init__.py
 │   ├── models.py
@@ -222,10 +235,11 @@ resume-customizer/
 │   ├── __init__.py
 │   └── point_distributor.py
 │
-├── 📁 formatters/                  # Formatting utilities
+├── 📁 resume_customizer/formatters/  # Formatting utilities
 │   ├── __init__.py
 │   ├── base_formatters.py
-│   └── bullet_formatter.py
+│   ├── bullet_formatter.py
+│   └── formatting_config.py        # Configuration system for formatting
 │
 ├── 📁 detectors/                   # Detection modules
 │   ├── __init__.py

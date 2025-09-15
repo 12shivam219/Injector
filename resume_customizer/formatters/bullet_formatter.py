@@ -10,6 +10,7 @@ import logging
 from infrastructure.utilities.logger import get_logger
 
 from .base_formatters import DocumentFormatter, ListFormatterMixin
+from .formatting_config import get_formatting_config
 
 # Initialize logger with fallback
 try:
@@ -34,9 +35,12 @@ class BulletFormatter(DocumentFormatter, ListFormatterMixin):
     """Handles bullet point formatting and style preservation."""
     
     def __init__(self, bullet_markers: List[str] = None):
+        # Get configuration
+        self.config = get_formatting_config()
+        
         # Dash variants
         self.dash_variants = ['-', '–', '—']
-        self.bullet_markers = bullet_markers or ['•', '●', '◦', '▪', '▫', '‣', '*'] + self.dash_variants
+        self.bullet_markers = bullet_markers or self.config.bullet_config.preferred_markers + self.dash_variants
         
         self.bullet_patterns = [
             r'^\s*[-−–—]\s+',  # Various dash types
@@ -44,7 +48,10 @@ class BulletFormatter(DocumentFormatter, ListFormatterMixin):
             r'^\s*[*]\s+',     # Asterisk
             r'^\s*[+]\s+',     # Plus sign
         ]
-        self.default_marker = '- '
+        self.default_marker = self.config.bullet_config.default_marker
+        self.preserve_formatting = self.config.bullet_config.preserve_original_formatting
+        self.capitalize_first_letter = self.config.bullet_config.capitalize_first_letter
+        self.end_with_period = self.config.bullet_config.end_with_period
     
     # -------------------------------
     # Formatting extraction

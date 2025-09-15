@@ -313,6 +313,68 @@ def _process_single_resume_worker(payload: Dict[str, Any]) -> ProcessingResult:
 
 
 class ResumeProcessor:
+    def process_single_resume(self, file_data: Dict[str, Any], progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
+        """
+        Process a single resume file with comprehensive error handling.
+        
+        Args:
+            file_data: Dictionary containing file information and processing parameters
+            progress_callback: Optional callback function for progress updates
+            
+        Returns:
+            Dictionary with processing results
+        """
+        start_time = time.time()
+        filename = file_data.get('filename', 'unknown')
+        file_obj = file_data.get('file')
+        text = file_data.get('text', '')
+        
+        try:
+            if not file_obj:
+                return {
+                    'success': False,
+                    'error': "Missing file object in file_data",
+                    'filename': filename
+                }
+                
+            # Update progress if callback provided
+            if progress_callback:
+                progress_callback(f"Processing {filename}...")
+                
+            # Process the document
+            from resume_customizer.processors.document_processor import get_document_processor
+            doc_processor = get_document_processor()
+            
+            # Parse input text to get points
+            from resume_customizer.parsers.text_parser import parse_input_text
+            parsed_points, _ = parse_input_text(text)
+            
+            # Process the document with the parsed points
+            processed_doc = doc_processor.process_document(file_obj, parsed_points)
+            
+            # Return success result
+            return {
+                'success': True,
+                'filename': filename,
+                'points_added': len(parsed_points),
+                'processing_time': time.time() - start_time,
+                'tech_stacks_used': [text],
+                'modified_content': processed_doc.getvalue() if hasattr(processed_doc, 'getvalue') else processed_doc,
+                'metadata': {'parser_used': 'TextParser'}
+            }
+            
+        except Exception as e:
+            # Log the error
+            logging.error(f"Error processing resume {filename}: {str(e)}")
+            
+            # Return error result
+            return {
+                'success': False,
+                'error': str(e),
+                'filename': filename,
+                'processing_time': time.time() - start_time
+            }
+    
     def process_single_resume_async(self, file_data: Dict[str, Any]):
         """
         Submit a resume processing job to Celery and return the AsyncResult.
@@ -1083,16 +1145,21 @@ class PreviewGenerator:
             # Generate preview content
             preview_content = self._extract_preview_content(preview_doc)
             
+            # Extract original content for comparison
+            original_content = self._extract_preview_content(doc)
+            
             return {
                 'success': True,
                 'points_added': points_added,
                 'tech_stacks_used': tech_stacks_used,
                 'selected_points': selected_points,
                 'preview_content': preview_content,
+                'original_content': original_content,
                 'preview_doc': preview_doc,
                 'projects_count': len(projects),
                 'project_points_mapping': project_points_mapping,
-                'document_marker': document_marker
+                'document_marker': document_marker,
+                'last_updated': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
             
         except Exception as e:
@@ -1103,21 +1170,37 @@ class PreviewGenerator:
     
     def _extract_preview_content(self, doc: Document) -> str:
         """
-        Extract readable content from document for preview.
+        Extract readable content from document for preview with enhanced formatting.
         
         Args:
             doc: Document to extract content from
             
         Returns:
-            Text content of the document
+            Text content of the document with enhanced formatting
         """
         content_parts = []
+        in_project = False
+        current_project = ""
+        
         for para in doc.paragraphs:
             text = para.text.strip()
-            if text:
+            if not text:
+                continue
+                
+            # Detect project headers (typically bold text)
+            is_header = any(run.bold for run in para.runs if run.text.strip())
+            
+            if is_header and len(text) < 100:  # Likely a header/title
+                in_project = True
+                current_project = text
+                content_parts.append(f"\n== {text} ==")
+            elif in_project and text.startswith(('•', '-', '●', '○', '■', '▪', '▫', '⦿')):
+                # Format bullet points with indentation for better readability
+                content_parts.append(f"  {text}")
+            else:
                 content_parts.append(text)
         
-        return "\n\n".join(content_parts)
+        return "\n".join(content_parts)
 
 
 class ResumeManager:

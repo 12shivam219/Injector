@@ -61,8 +61,8 @@ class PointDistributor:
             logger.warning("No projects available for distribution")
             return result
         
-        # Calculate distribution
-        distribution = self._calculate_round_robin_distribution(tech_stacks, len(top_projects))
+        # Calculate distribution using intelligent algorithm
+        distribution = self._calculate_round_robin_distribution(tech_stacks, len(top_projects), top_projects)
         
         # Prepare result
         for i, project in enumerate(top_projects):
@@ -176,14 +176,16 @@ class PointDistributor:
     def _calculate_round_robin_distribution(
         self, 
         tech_stacks: Dict[str, List[Dict[str, Any]]], 
-        num_projects: int
+        num_projects: int,
+        projects: List[Dict] = None
     ) -> Dict[int, List[Dict[str, Any]]]:
         """
-        Calculate round-robin distribution of tech stack points across projects.
+        Calculate intelligent distribution of tech stack points across projects.
         
         Args:
             tech_stacks: Dictionary mapping tech names to lists of points
             num_projects: Number of projects to distribute points to
+            projects: Optional list of project info to use for intelligent matching
             
         Returns:
             Dictionary mapping project index to list of points
@@ -201,13 +203,62 @@ class PointDistributor:
                 point['tech'] = tech
                 all_points.append(point)
         
-        # Shuffle to ensure random distribution within tech stacks
-        random.shuffle(all_points)
+        # Group points by technology for better distribution
+        tech_grouped_points = {}
+        for point in all_points:
+            tech = point['tech']
+            if tech not in tech_grouped_points:
+                tech_grouped_points[tech] = []
+            tech_grouped_points[tech].append(point)
         
-        # Distribute points in round-robin fashion
-        for i, point in enumerate(all_points):
-            project_idx = i % num_projects
-            distribution[project_idx].append(point)
+        # Distribute points more intelligently
+        # 1. Ensure each project gets at least one point from each tech stack (if possible)
+        # 2. Then distribute remaining points based on project priority
+        
+        # First pass: distribute one point from each tech to each project
+        for tech, points in tech_grouped_points.items():
+            for i in range(min(len(points), num_projects)):
+                if points:
+                    distribution[i].append(points.pop(0))
+        
+        # Second pass: distribute remaining points with weighted distribution
+        # Projects earlier in the list get more points (assuming they're more important)
+        remaining_points = [p for points in tech_grouped_points.values() for p in points]
+        
+        # Create weighted distribution - earlier projects get more points
+        weights = []
+        for i in range(num_projects):
+            # Weight formula: higher weight for earlier projects
+            weight = num_projects - i
+            weights.append(weight)
+        
+        # Normalize weights to sum to 1
+        total_weight = sum(weights)
+        normalized_weights = [w/total_weight for w in weights]
+        
+        # Calculate how many points each project should get
+        points_per_project = {}
+        remaining_count = len(remaining_points)
+        
+        for i in range(num_projects):
+            # Calculate points for this project (weighted)
+            if i < num_projects - 1:
+                points_per_project[i] = int(remaining_count * normalized_weights[i])
+            else:
+                # Last project gets all remaining points to ensure we use them all
+                points_per_project[i] = remaining_count - sum(points_per_project.values())
+        
+        # Distribute remaining points according to calculated distribution
+        point_index = 0
+        for project_idx, point_count in points_per_project.items():
+            for _ in range(point_count):
+                if point_index < len(remaining_points):
+                    distribution[project_idx].append(remaining_points[point_index])
+                    point_index += 1
+        
+        # Log the distribution results
+        for i in range(num_projects):
+            logger.debug(f"Project {i+1} received {len(distribution[i])} points")
         
         return distribution
 
