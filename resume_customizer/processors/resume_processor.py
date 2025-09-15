@@ -993,19 +993,13 @@ class PreviewGenerator:
             Preview result dictionary
         """
         try:
-            # Use new restricted parser for strict format validation
-            try:
-                selected_points, tech_stacks_used = parse_input_text_restricted(input_text, manual_text)
-            except RestrictedFormatError as e:
-                return {
-                    'success': False,
-                    'error': f"Input format error: {str(e)}"
-                }
+            # Use the same parser as the main processing for consistency
+            selected_points, tech_stacks_used = parse_input_text(input_text, manual_text)
             
             if not selected_points or not tech_stacks_used:
                 return {
                     'success': False,
-                    'error': 'Could not parse tech stacks from input'
+                    'error': 'Could not parse tech stacks from input. Please check the format.'
                 }
             
             # Load document and find projects
@@ -1052,9 +1046,9 @@ class PreviewGenerator:
                     'project_info': project_info
                 })
             
-            # Apply changes to preview
+            # Apply changes to preview - pass the raw ProjectInfo objects like in document processing
             distribution_result = self.doc_processor.point_distributor.distribute_points(
-                preview_projects, (selected_points, tech_stacks_used)
+                preview_projects_data, (selected_points, tech_stacks_used)
             )
             if not distribution_result.distribution:
                 return {
@@ -1072,8 +1066,8 @@ class PreviewGenerator:
             project_points_mapping = {}
             
             for project_name, points in distribution_result.distribution.items():
-                # Find the corresponding project
-                project = next((p['project_info'] for p in preview_projects if p['title'] == project_name), None)
+                # Find the corresponding project by name
+                project = next((p for p in preview_projects_data if p.name == project_name), None)
                 if project and points:
                     # Store points mapping for display
                     project_points_mapping[project_name] = {

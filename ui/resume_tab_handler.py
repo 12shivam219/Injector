@@ -151,11 +151,13 @@ class ResumeTabHandler:
         st.markdown("#### 🚀 Actions")
         col1, col2 = st.columns(2)
         
+        # Define manual_text here so it's available in both button scopes
+        manual_text = file_data.get('manual_text', '')
+        
         with col1:
             # Optimized preview button (no throttling for better UX)
             preview_key = f"preview_{unique_key}"
             if st.button("🔍 Preview Changes", key=preview_key):
-                manual_text = file_data.get('manual_text', '')
                 self.handle_preview(file, text_input, manual_text)
         
         with col2:
@@ -299,34 +301,93 @@ class ResumeTabHandler:
                             st.error(f"❌ {err}")
                     return
 
-                st.success(f"✅ Preview generated with {result['points_added']} points added!")
-                st.info(f"Tech stacks highlighted: {', '.join(result['tech_stacks_used'])}")
-                st.info(f"📂 Number of projects in resume: {result['projects_count']}")
-
-                st.markdown("### 📊 Points Distribution by Project")
+                # Clear success message with breakdown
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("🎯 Points Added", result['points_added'])
+                with col2:
+                    st.metric("📊 Tech Stacks", len(result['tech_stacks_used']))
+                with col3:
+                    st.metric("📁 Projects Found", result['projects_count'])
+                
+                st.success(f"✅ Preview generated successfully! {result['points_added']} new bullet points will be added to your resume.")
+                
+                # Highlighted section showing what will be added
+                st.markdown("### 🆕 NEW POINTS THAT WILL BE ADDED")
+                st.markdown("**These bullet points will be added to your resume:**")
+                
+                # Show each new point with clear highlighting
                 for project, mapping in result['project_points_mapping'].items():
-                    with st.expander(f"Project: {project}"):
-                        for tech, points in mapping.items():
-                            st.markdown(f"**{tech}**")
-                            for p in points:
-                                st.markdown(f"- {p}")
-                            st.markdown("")
+                    st.markdown(f"**📋 {project}:**")
+                    # Use a colored container to make new points stand out
+                    with st.container():
+                        for point in mapping['points']:
+                            # Remove bullet marker if present and add our own styling
+                            clean_point = point.lstrip('• ').strip()
+                            st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;🆕 **{clean_point}**", unsafe_allow_html=True)
+                    st.markdown("---")
+                
+                # Also show tech stacks used
+                st.info(f"📚 **Tech stacks processed:** {', '.join(result['tech_stacks_used'])}")
 
-                # Display document preview
+                # Display document preview with better highlighting
+                st.markdown("### 📄 FULL RESUME PREVIEW (WITH NEW POINTS)")
+                st.markdown("**Your complete resume with the new bullet points added:**")
+                
                 try:
                     import mammoth
                     buffer = BytesIO()
                     result['preview_doc'].save(buffer)
                     buffer.seek(0)
                     html = mammoth.convert_to_html(buffer).value
-                    st.markdown("### 📝 Your Updated Resume (Word Format):", unsafe_allow_html=True)
+                    
+                    # Try to highlight new points in the HTML (basic approach)
+                    for project, mapping in result['project_points_mapping'].items():
+                        for point in mapping['points']:
+                            clean_point = point.lstrip('• ').strip()
+                            # Add highlighting to new points
+                            if clean_point in html:
+                                highlighted = f'<span style="background-color: #90EE90; padding: 2px; border-radius: 3px;">• {clean_point}</span>'
+                                html = html.replace(f'• {clean_point}', highlighted)
+                    
                     st.markdown(html, unsafe_allow_html=True)
+                    st.info("💡 **Green highlighted bullet points** are the new points that were added.")
+                    
                 except ImportError:
-                    st.markdown("### 📝 Your Updated Resume Content:")
-                    st.info("Install 'mammoth' for better Word format display: pip install mammoth")
-                    st.text_area("Updated Resume Content", value=result['preview_content'], height=600)
+                    st.markdown("📝 **Updated Resume Content:**")
+                    st.info("💡 Install 'mammoth' for better Word format display: `pip install mammoth`")
+                    
+                    # Create highlighted text version
+                    preview_text = result['preview_content']
+                    
+                    # Add markers to new points
+                    for project, mapping in result['project_points_mapping'].items():
+                        for point in mapping['points']:
+                            clean_point = point.lstrip('• ').strip()
+                            if clean_point in preview_text:
+                                preview_text = preview_text.replace(clean_point, f"🆕 {clean_point} 🆕")
+                    
+                    st.text_area("Updated Resume Content (🆕 = newly added points)", value=preview_text, height=600)
 
-                st.success("✅ Preview completed! Review changes above.")
+                # Final summary section
+                st.markdown("---")
+                st.markdown("### 🎯 PREVIEW SUMMARY")
+                
+                summary_col1, summary_col2 = st.columns(2)
+                with summary_col1:
+                    st.markdown("**What will happen when you generate:**")
+                    st.markdown(f"• **{result['points_added']} new bullet points** will be added")
+                    st.markdown(f"• Points will be distributed across **{result['projects_count']} projects**")
+                    st.markdown(f"• Tech stacks: **{', '.join(result['tech_stacks_used'])}**")
+                
+                with summary_col2:
+                    st.markdown("**Where to look:**")
+                    st.markdown("• 🆕 **NEW POINTS** section shows what will be added")
+                    st.markdown("• 📄 **FULL RESUME PREVIEW** shows the complete result")
+                    if 'mammoth' in str(type(st)):
+                        st.markdown("• 💚 **Green highlighted points** are new additions")
+                
+                st.success("✅ Preview completed! If everything looks good, click 'Generate & Send' to create your customized resume.")
             except Exception as e:
                 st.error(f"❌ Error generating preview: {e}")
 

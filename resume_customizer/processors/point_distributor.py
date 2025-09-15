@@ -25,7 +25,7 @@ class PointDistributor:
         Distribute tech stack points across the top 3 projects using round-robin distribution.
         
         Args:
-            projects: List of project dictionaries
+            projects: List of project dictionaries or ProjectInfo objects
             tech_stacks_data: Either a dictionary of tech stacks or tuple of (points, tech_names)
             
         Returns:
@@ -33,9 +33,17 @@ class PointDistributor:
         """
         result = DistributionResult()
         
-        # Debug logging
+        # Debug logging - handle both dict and ProjectInfo objects
         logger.debug(f"distribute_points called with {len(projects)} projects and tech_stacks_data type: {type(tech_stacks_data)}")
-        logger.debug(f"Projects: {[p.get('title', p.get('name', 'Unknown')) for p in projects]}")
+        project_names = []
+        for p in projects:
+            if hasattr(p, 'name'):  # ProjectInfo object
+                project_names.append(p.name)
+            elif isinstance(p, dict):
+                project_names.append(p.get('title', p.get('name', 'Unknown')))
+            else:
+                project_names.append('Unknown')
+        logger.debug(f"Projects: {project_names}")
         
         # Normalize tech stacks data
         tech_stacks = self._normalize_tech_stacks(tech_stacks_data)
@@ -58,7 +66,14 @@ class PointDistributor:
         
         # Prepare result
         for i, project in enumerate(top_projects):
-            project_name = project.get('title', project.get('name', f'Project {i+1}'))
+            # Handle both dict and ProjectInfo objects
+            if hasattr(project, 'name'):  # ProjectInfo object
+                project_name = project.name
+            elif isinstance(project, dict):
+                project_name = project.get('title', project.get('name', f'Project {i+1}'))
+            else:
+                project_name = f'Project {i+1}'
+            
             result.distribution[project_name] = distribution.get(i, [])
             logger.debug(f"Assigned {len(distribution.get(i, []))} points to project '{project_name}'")
         
