@@ -79,24 +79,16 @@ class DatabaseConnectionManager:
             if not database_url:
                 database_url = self._build_connection_string()
             
+            print(f"Trying to connect with URL: {database_url}")
             self._connection_string = database_url
             
-            # Advanced engine configuration for high performance
+            # Simple engine configuration for testing
             engine_config = {
-                'echo': False,  # Set to True for SQL debugging
-                'poolclass': QueuePool,
-                'pool_size': 20,  # Base pool size for concurrent connections
-                'max_overflow': 30,  # Additional connections when needed
-                'pool_timeout': 30,  # Timeout for getting connection from pool
-                'pool_recycle': 3600,  # Recycle connections every hour
-                'pool_pre_ping': True,  # Verify connections before use
-                'pool_reset_on_return': 'commit',  # Clean state on return
+                'echo': True,  # Enable SQL debugging
+                'pool_pre_ping': True,
                 'connect_args': {
-                    'connect_timeout': 10,
-                    'application_name': 'ResumeCustomizer',
-                    'options': '-c statement_timeout=60000'  # 60 second query timeout
-                },
-                **kwargs
+                    'application_name': 'ResumeCustomizer'
+                }
             }
             
             # Create engine with optimizations
@@ -127,13 +119,13 @@ class DatabaseConnectionManager:
             return False
     
     def _build_connection_string(self) -> str:
-        """Build PostgreSQL connection string from environment variables"""
+        """Build PostgreSQL connection string with hardcoded values for testing"""
         db_config = {
-            'host': os.getenv('DB_HOST', 'localhost'),
-            'port': os.getenv('DB_PORT', '5432'),
-            'database': os.getenv('DB_NAME', 'resume_customizer'),
-            'username': os.getenv('DB_USER', 'postgres'),
-            'password': os.getenv('DB_PASSWORD', 'password')
+            'host': 'localhost',
+            'port': '5432',
+            'database': 'resume_customizer',
+            'username': 'postgres',
+            'password': 'Amit@8982'
         }
         
         # URL encode password to handle special characters
@@ -157,10 +149,8 @@ class DatabaseConnectionManager:
             
             # PostgreSQL-specific optimizations
             with dbapi_connection.cursor() as cursor:
-                # Set session-level optimizations
+                # Only set safe session-level parameters
                 cursor.execute("SET synchronous_commit TO off")  # Better write performance
-                cursor.execute("SET wal_buffers TO '16MB'")  # Optimize WAL buffer
-                cursor.execute("SET checkpoint_completion_target TO 0.9")
                 cursor.execute("SET random_page_cost TO 1.1")  # SSD optimization
                 
         @event.listens_for(self.engine, 'checkout')

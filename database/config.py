@@ -130,8 +130,7 @@ class DatabaseConfig:
             'connect_args': {
                 'connect_timeout': self.config['connect_timeout'],
                 'application_name': 'ResumeCustomizer',
-                'sslmode': self.config['ssl_mode'],
-                'options': f"-c statement_timeout={self.config['statement_timeout']}"
+                'sslmode': self.config['ssl_mode']
             }
         }
     

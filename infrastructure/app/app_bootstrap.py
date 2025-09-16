@@ -104,6 +104,27 @@ def get_cached_services() -> Dict[str, Any]:
     """Get cached instances of all services."""
     services = {}
     
+    # Initialize database connection
+    try:
+        from database.connection import DatabaseConnectionManager
+        from database.config import DatabaseConfig
+        
+        # Get database configuration
+        db_config = DatabaseConfig()
+        
+        # Initialize connection manager
+        db_manager = DatabaseConnectionManager()
+        if db_manager.initialize():
+            # Get a session maker
+            services['db_session'] = db_manager.SessionLocal
+            logging.info("Database connection initialized successfully")
+        else:
+            services['db_session'] = None
+            logging.error("Failed to initialize database connection")
+    except Exception as e:
+        services['db_session'] = None
+        logging.error(f"Database initialization error: {e}")
+    
     # UI Components
     try:
         from ui.components import UIComponents

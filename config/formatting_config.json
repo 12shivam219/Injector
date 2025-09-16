@@ -1,4 +1,11 @@
 {
+  "fuzzy_matching": {
+    "enabled": true,
+    "company_name_threshold": 85,
+    "use_token_set_ratio": true,
+    "ignore_case": true,
+    "ignore_punctuation": true
+  },
   "bullet_config": {
     "preferred_markers": ["-", "*", ">"],
     "default_marker": "- ",

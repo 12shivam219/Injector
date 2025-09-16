@@ -1,6 +1,12 @@
 # 🎯 Resume Customizer Pro - Enterprise Multi-User Platform
 
-A comprehensive resume customization platform with advanced multi-user features, smart email automation, team collaboration, and high-performance architecture supporting 50+ concurrent users.
+A comprehensive resume customization platform with advanced multi-user features, smart email automation, team collaboration, and high-performance architecture supporting 50+ concur└── 📁 resume_customizer/ # Core resume customization logic
+│ ├── **init**.py
+│ ├── analyzers/ # Analysis modules
+│ ├── parsers/ # Text and document parsing
+│ ├── processors/ # Document processing
+│ └── formatters/ # Formatting modules
+│.
 
 ## 🔐 Security Features
 
@@ -47,11 +53,11 @@ A comprehensive resume customization platform with advanced multi-user features,
 
 ### ⚡ High-Performance Architecture
 
-- **50+ Concurrent Users**: Optimized for enterprise scale
-- **Database Pooling**: 20-connection pool for optimal performance
+- **PostgreSQL Database**: Optimized for enterprise scale
+- **Database Pooling**: Connection pool for optimal performance
 - **Advanced Caching**: Memory cache with TTL, file processing cache
 - **Async Operations**: Non-blocking background processing
-- **Rate Limiting**: Subscription-based quotas and DDoS protection
+- **Error Handling**: Comprehensive error recovery and logging
 
 ### 📄 Enhanced Resume Processing
 
@@ -69,11 +75,14 @@ A comprehensive resume customization platform with advanced multi-user features,
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
-cd resume-customizer
+git clone https://github.com/12shivam219/Injector.git
+cd Injector
 
-# Install dependencies
+# Install core dependencies
 pip install -r requirements.txt
+
+# Install Google Drive integration (optional)
+pip install -r requirements-gdrive.txt
 
 # Run the application
 streamlit run app.py
@@ -88,16 +97,29 @@ streamlit run app.py
 ## 📋 Requirements
 
 - Python 3.9+
-- Dependencies listed in `requirements.txt`:
+- Core dependencies in `requirements.txt`
+- Google Drive integration dependencies in `requirements-gdrive.txt` (optional)
+- Key dependencies:
   - streamlit>=1.28.0
   - python-docx>=0.8.11
   - mammoth>=1.6.0 (for preview)
+  - psycopg2-binary (for PostgreSQL)
+  - SQLAlchemy (for database ORM)
 
 ## 🔧 Usage
 
-### 1. Upload Resumes
+### 1. Format Management (First Step)
+
+- Go to the **Format Manager** tab first
+- Upload sample resume templates that represent different formats
+- Name and describe each format for easy reference
+- System will analyze and store format patterns
+- Test format matching with sample resumes
+
+### 2. Upload Resumes
 
 - Upload one or more DOCX files
+- System will automatically match with stored formats
 - Each resume should have clear project sections with "Responsibilities:" headings
 
 ### 2. Add Tech Stacks
@@ -153,15 +175,10 @@ AWS: • Deployed applications using EC2 and S3 • Managed databases with RDS
 
 ## 📁 Project Structure
 
-## 🧪 Testing
-
-- **Framework**: pytest for unit testing.
-- **Location**: Tests are in the `tests/` directory.
-- **Running Tests**: Activate the virtual environment and run `pytest tests/` from the project root.
-- **Coverage**: Focus on core modules like config and text parsing; expand as needed.
+## 🏗️ Project Structure
 
 ```
-resume-customizer/
+injector/
 ├── app.py                          # Main Streamlit application
 ├── config.py                       # Configuration module
 ├── requirements.txt                # Python dependencies
@@ -194,12 +211,14 @@ resume-customizer/
 │   ├── progress_tracker_enhanced.py
 │   └── error_handling_enhanced.py
 │
-├── 📁 monitoring/                  # Performance & monitoring
+├── 📁 infrastructure/              # Infrastructure components
 │   ├── __init__.py
-│   ├── performance_monitor.py
-│   ├── circuit_breaker.py
-│   ├── distributed_cache.py
-│   └── performance_cache.py
+│   ├── app/                        # Application bootstrap
+│   ├── monitoring/                 # Monitoring and logging
+│   ├── error_handling/            # Error handling
+│   ├── security/                  # Security components
+│   ├── utilities/                 # Shared utilities
+│   └── async_processing/          # Async operations
 │
 ├── 📁 utilities/                   # Helper utilities
 │   ├── __init__.py
@@ -235,17 +254,12 @@ resume-customizer/
 │   ├── __init__.py
 │   └── point_distributor.py
 │
-├── 📁 resume_customizer/formatters/  # Formatting utilities
-│   ├── __init__.py
-│   ├── base_formatters.py
-│   ├── bullet_formatter.py
-│   └── formatting_config.py        # Configuration system for formatting
-│
-├── 📁 detectors/                   # Detection modules
-│   ├── __init__.py
-│   └── project_detector.py
-│
 ├── 📁 templates/                   # Resume templates
+│   ├── software_engineer_template.txt
+│   ├── data_science_template.txt
+│   ├── product_manager_template.txt
+│   ├── executive_template.txt
+│   └── general_professional_template.txt
 ├── 📁 tests/                       # Test files
 │   ├── test_comprehensive.py
 │   ├── test_bullet_formatting.py
@@ -358,8 +372,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🆘 Support
 
 - 📖 [Deployment Guide](DEPLOYMENT.md)
-- 🐛 [Report Issues](https://github.com/yourusername/resume-customizer/issues)
-- 💬 [Discussions](https://github.com/yourusername/resume-customizer/discussions)
+- 🐛 [Report Issues](https://github.com/12shivam219/Injector/issues)
+- 💬 [Discussions](https://github.com/12shivam219/Injector/discussions)
 
 ## 🎯 Use Cases
 

@@ -24,6 +24,7 @@ redis>=4.0.0
 # Data Processing
 pandas>=2.0.0
 numpy>=1.24.0
+rapidfuzz>=3.0.0  # For fuzzy string matching
 
 # Security & Authentication
 cryptography>=41.0.0

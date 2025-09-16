@@ -18,6 +18,23 @@ def main():
     st.title("📝 Resume Customizer")
     st.markdown(f"### 🎯 **Welcome to Resume Customizer v{APP_CONFIG['version']}**")
     
+    # Check if formats exist
+    services = get_cached_services()
+    db_session = services.get('db_session')
+    if db_session:
+        from database.format_models import ResumeFormat
+        formats_exist = db_session.query(ResumeFormat).first() is not None
+        
+        if not formats_exist:
+            st.warning("""
+            ⚠️ **Important:** No resume formats are configured yet. 
+            Please go to the **Format Manager** tab first to upload some resume formats.
+            This helps the system better understand and process your resumes.
+            """)
+            
+            if st.button("🔄 Go to Format Manager"):
+                st.switch_page("pages/0_Format_Manager.py")
+    
     st.markdown("""
     **Transform your resume with AI-powered customization!**
     
@@ -35,7 +52,7 @@ def main():
         st.markdown("""
         **📄 Smart Resume Processing**
         - Upload DOCX resume files
-        - Automatic project detection
+        - Format pattern matching
         - Intelligent point distribution
         - Preserve original formatting
         """)
@@ -80,7 +97,7 @@ def main():
     
     with col1:
         if st.button("📄 Start Customizing", key="start_customizing", type="primary"):
-            st.switch_page("pages/1_Resume_Customizer.py")
+            st.switch_page("pages/0_Format_Manager.py")
     
     with col2:
         if st.button("📋 Manage Requirements", key="manage_requirements"):

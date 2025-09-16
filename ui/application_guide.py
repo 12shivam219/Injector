@@ -19,9 +19,10 @@ class ApplicationGuide:
         st.markdown("---")
         
         # Create sub-tabs
-        tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
             "🏠 About", 
             "⚡ Features", 
+            "📋 Format Management", 
             "🛠️ Tech Stack Guide", 
             "🔧 Setup Guides", 
             "💡 Best Practices", 
@@ -34,20 +35,23 @@ class ApplicationGuide:
         
         with tab2:
             self.render_features_section()
-        
+            
         with tab3:
-            self.render_tech_stack_guide()
+            self.render_format_management_guide()
         
         with tab4:
-            self.render_setup_guides()
+            self.render_tech_stack_guide()
         
         with tab5:
-            self.render_best_practices()
+            self.render_setup_guides()
         
         with tab6:
-            self.render_resume_templates()
+            self.render_best_practices()
         
         with tab7:
+            self.render_resume_templates()
+            
+        with tab8:
             self.render_troubleshooting()
     
     def render_about_section(self):
@@ -111,7 +115,8 @@ class ApplicationGuide:
                     "Extract text content with formatting preservation",
                     "Parse sections (Experience, Education, Skills, etc.)",
                     "Identify and categorize technical skills",
-                    "Extract contact information and personal details"
+                    "Extract contact information and personal details",
+                    "Intelligent fuzzy matching for company names and variations"
                 ]
             },
             "Job Requirements Management": {
@@ -193,6 +198,13 @@ class ApplicationGuide:
             - Celery task queue for background jobs
             - Resource monitoring and optimization
             - Lazy loading for improved startup time
+            
+            **🎯 Intelligent Matching Features**:
+            - Fuzzy company name matching (85% threshold)
+            - Support for company variations and suffixes
+            - Smart pattern recognition for formats
+            - Token-based similarity scoring
+            - Configurable matching parameters
             """)
         
         with col2:
@@ -212,6 +224,138 @@ class ApplicationGuide:
             - Comprehensive error handling
             """)
     
+    def render_format_management_guide(self):
+        """Render the Format Management Guide section"""
+        st.header("📋 Resume Format Management")
+        
+        st.markdown("""
+        The Format Manager is a powerful feature that helps the system understand different resume layouts
+        and improve processing accuracy. With our new intelligent fuzzy matching capability, it can now 
+        handle variations in company names and format patterns more effectively.
+        """)
+        
+        # Overview of Fuzzy Matching
+        st.subheader("✨ Intelligent Format Matching")
+        
+        st.markdown("""
+        Our advanced fuzzy matching system helps identify and match company names even when they have slight 
+        variations or different formats. This means:
+        
+        - Recognizes company name variations (e.g., "Boeing" = "Boeing Inc." = "The Boeing Company")
+        - Handles common suffixes (LLC, Inc., Corporation, etc.)
+        - Manages typos and spacing differences
+        - Preserves the order of experience while being flexible with exact naming
+        """)
+        
+        with st.expander("🔍 How Fuzzy Matching Works"):
+            st.markdown("""
+            The system uses sophisticated string matching algorithms to:
+            
+            1. **Compare Company Names**: Uses token-set matching to handle word reordering
+            2. **Calculate Similarity**: Scores matches on a 0-100 scale
+            3. **Apply Smart Threshold**: Matches above 85% similarity are considered the same company
+            4. **Handle Variations**: Intelligently processes:
+               - Legal entity suffixes (Inc., LLC, Ltd.)
+               - "The" prefix
+               - Spacing and punctuation differences
+               - Common abbreviations
+            """)
+        
+        # Step-by-Step Guide
+        st.subheader("🚀 Using Format Management")
+        
+        st.markdown("""
+        1. **Upload Format Templates**
+           - Choose representative resumes
+           - System analyzes formatting patterns
+           - Detects company name patterns
+           - Creates reusable format profile
+        
+        2. **Format Detection**
+           - Automatic pattern matching
+           - Smart company name recognition
+           - Flexible matching with 85% threshold
+           - Preservation of experience sequence
+        
+        3. **Managing Formats**
+           - View detected patterns
+           - Edit matching thresholds
+           - Update format templates
+           - Monitor matching accuracy
+        """)
+        
+        # Configuration Options
+        with st.expander("⚙️ Configuration Options"):
+            st.markdown("""
+            Adjust format matching behavior in `formatting_config.json`:
+            
+            ```json
+            {
+              "fuzzy_matching": {
+                "enabled": true,
+                "company_name_threshold": 85,
+                "use_token_set_ratio": true,
+                "ignore_case": true,
+                "ignore_punctuation": true
+              }
+            }
+            ```
+            
+            - **threshold**: Minimum similarity score (default: 85%)
+            - **token_set_ratio**: Enable smart word matching
+            - **ignore_case**: Case-insensitive matching
+            - **ignore_punctuation**: Handle punctuation differences
+            """)
+        
+        # Best Practices
+        st.subheader("💡 Format Management Best Practices")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("""
+            **✅ Do:**
+            - Use clean, well-formatted resumes as templates
+            - Include various company name formats
+            - Regularly update format templates
+            - Monitor matching accuracy
+            - Adjust thresholds if needed
+            """)
+        
+        with col2:
+            st.markdown("""
+            **❌ Don't:**
+            - Use scanned or image-based PDFs
+            - Ignore format matching reports
+            - Set threshold too low (< 80%)
+            - Mix different format styles
+            - Skip format validation
+            """)
+        
+        # Troubleshooting
+        with st.expander("🔧 Troubleshooting Format Matching"):
+            st.markdown("""
+            **Common Issues and Solutions:**
+            
+            1. **Low Match Scores**
+               - Check company name formatting
+               - Verify template quality
+               - Adjust similarity threshold
+               - Add more format variations
+            
+            2. **False Matches**
+               - Increase similarity threshold
+               - Review format patterns
+               - Add more specific markers
+               - Check company name variations
+            
+            3. **Missing Matches**
+               - Verify text extraction
+               - Check for special characters
+               - Update format templates
+               - Review configuration settings
+            """)
+            
     def render_tech_stack_guide(self):
         """Render the Tech Stack Guide section"""
         st.header("🛠️ Technology Stack & Resume Optimization Guide")
