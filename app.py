@@ -6,7 +6,7 @@ Modern Streamlit multi-page application for resume customization
 import streamlit as st
 
 # Import the shared bootstrap
-from app_bootstrap import initialize_app, get_cached_services, APP_CONFIG
+from infrastructure.app.app_bootstrap import initialize_app, get_cached_services, APP_CONFIG
 
 def main():
     """Main application entry point."""

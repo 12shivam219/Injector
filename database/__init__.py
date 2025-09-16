@@ -13,6 +13,11 @@ from .connection import (
     database_health_check
 )
 
+# Add get_connection_manager function
+def get_connection_manager():
+    """Return the database connection manager instance"""
+    return db_manager
+
 from .models import (
     Base,
     Requirement,

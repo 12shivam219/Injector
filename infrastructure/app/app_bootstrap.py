@@ -127,7 +127,7 @@ def get_cached_services() -> Dict[str, Any]:
     except (ImportError, Exception) as e:
         # Fallback to file-based requirements manager
         try:
-            from requirements_integration import RequirementsManager
+            from resume_customizer.analyzers.requirements_integration import RequirementsManager
             services['requirements_manager'] = RequirementsManager()
             logging.info("Using file-based requirements manager as fallback")
         except Exception as fallback_e:
@@ -180,7 +180,7 @@ def get_cached_services() -> Dict[str, Any]:
     
     # Application Guide
     try:
-        from application_guide import app_guide
+        from ui.application_guide import app_guide
         services['app_guide'] = app_guide
     except ImportError as e:
         services['app_guide'] = None
@@ -197,7 +197,7 @@ def get_cached_logger():
 def get_cached_requirements_manager():
     """Get cached requirements manager."""
     try:
-        from requirements_integration import RequirementsManager
+        from resume_customizer.analyzers.requirements_integration import RequirementsManager
         return RequirementsManager()
     except ImportError:
         return None

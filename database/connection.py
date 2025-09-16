@@ -197,6 +197,27 @@ class DatabaseConnectionManager:
         return False
     
     @contextmanager
+    def get_connection(self):
+        """
+        Context manager for raw database connections
+        
+        Yields:
+            Connection: Raw database connection object
+        """
+        if not self._is_connected:
+            raise ConnectionError("Database not initialized. Call initialize() first.")
+        
+        # Get connection from engine
+        conn = self.engine.raw_connection()
+        try:
+            yield conn
+        except Exception as e:
+            logger.error(f"❌ Database connection error: {e}")
+            raise
+        finally:
+            conn.close()
+    
+    @contextmanager
     def get_session(self, auto_commit: bool = True) -> Generator[Session, None, None]:
         """
         Context manager for database sessions with automatic error handling

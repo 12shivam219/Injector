@@ -19,7 +19,7 @@ from docx import Document
 import streamlit as st
 
 # Local imports
-from audit_logger import audit_logger
+from infrastructure.monitoring.audit_logger import audit_logger
 from infrastructure.utilities.logger import get_logger
 import logging
 from ..parsers.text_parser import parse_input_text, LegacyParser, get_parser

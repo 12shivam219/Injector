@@ -1,6 +1,6 @@
 {
   "bullet_config": {
-    "preferred_markers": ["•", "-", "●"],
+    "preferred_markers": ["-", "*", ">"],
     "default_marker": "- ",
     "indent_spaces": 2,
     "preserve_original_formatting": true,

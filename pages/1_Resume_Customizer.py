@@ -7,7 +7,7 @@ from io import BytesIO
 from typing import Dict, Any, Optional
 
 # Import required components
-from app_bootstrap import initialize_app, get_cached_services
+from infrastructure.app.app_bootstrap import initialize_app, get_cached_services
 from ui.components import UIComponents
 
 def main():

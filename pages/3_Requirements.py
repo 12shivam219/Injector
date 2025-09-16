@@ -6,7 +6,7 @@ import streamlit as st
 
 # Import the shared bootstrap
 try:
-    from app_bootstrap import initialize_app, get_cached_services, get_cached_logger, get_cached_requirements_manager
+    from infrastructure.app.app_bootstrap import initialize_app, get_cached_services, get_cached_logger, get_cached_requirements_manager
     app_initialized = True
 except ImportError:
     app_initialized = False

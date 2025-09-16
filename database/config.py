@@ -27,7 +27,7 @@ class DatabaseConfig:
             'port': '5432',
             'database': 'resume_customizer',
             'username': 'postgres',
-            'password': 'password',
+            'password': 'Amit@8982',
             'ssl_mode': 'prefer',
             'connect_timeout': 10,
             'statement_timeout': 60000,

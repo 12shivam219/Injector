@@ -602,16 +602,7 @@ def render_requirement_form(requirement_data: Optional[Dict[str, Any]] = None) -
                 placeholder="Paste the complete job description here..."
             )
             
-            # Consultants Section (Legacy compatibility)
-            st.markdown("**Applied For Consultants**")
-            available_consultants = ['Raju', 'Eric']
-            selected_consultants = st.multiselect(
-                "Select Consultants",
-                options=available_consultants,
-                default=[form_data.get('applied_for', 'Raju')],  # Default to applied_for selection
-                key=f"consultants_select_{form_data.get('id', 'new')}"
-            )
-            form_data['consultants'] = selected_consultants
+            # Removed Applied For Consultants section as requested
         
         # Form submit button
         submitted = st.form_submit_button("💾 Save Requirement", help="Save this requirement with all the provided information")

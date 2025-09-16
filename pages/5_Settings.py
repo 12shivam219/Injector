@@ -8,7 +8,7 @@ from typing import Dict, Any
 
 # Import the shared bootstrap
 try:
-    from app_bootstrap import initialize_app, get_cached_services, check_feature_availability, APP_CONFIG
+    from infrastructure.app.app_bootstrap import initialize_app, get_cached_services, check_feature_availability, APP_CONFIG
     app_initialized = True
 except ImportError:
     app_initialized = False
