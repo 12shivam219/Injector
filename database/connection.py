@@ -18,6 +18,9 @@ from sqlalchemy.exc import SQLAlchemyError, DisconnectionError, OperationalError
 from sqlalchemy.pool import QueuePool
 import psycopg2
 from psycopg2 import OperationalError as PsycopgOperationalError
+from database.error_handler import handle_db_errors, with_retry, ConnectionError
+from database.query_monitor import setup_query_monitoring
+from database.adaptive_pool import setup_adaptive_pooling
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -94,6 +97,16 @@ class DatabaseConnectionManager:
             # Create engine with optimizations
             self.engine = create_engine(database_url, **engine_config)
             
+            # Set up query monitoring
+            setup_query_monitoring(self.engine, slow_query_threshold_ms=100)
+            
+            # Set up adaptive connection pooling
+            self.pool_manager = setup_adaptive_pooling(
+                self.engine,
+                min_pool_size=int(os.getenv('DB_MIN_POOL_SIZE', '5')),
+                max_pool_size=int(os.getenv('DB_MAX_POOL_SIZE', '30'))
+            )
+            
             # Configure session factory
             self.SessionLocal = sessionmaker(
                 autocommit=False,
@@ -119,13 +132,51 @@ class DatabaseConnectionManager:
             return False
     
     def _build_connection_string(self) -> str:
-        """Build PostgreSQL connection string with hardcoded values for testing"""
+        """Build PostgreSQL connection string from environment variables with encryption"""
+        import os
+        from dotenv import load_dotenv
+        from database.encryption import encrypt_connection_string, decrypt_connection_string
+        
+        # Load environment variables
+        load_dotenv()
+        
+        # Check for encrypted connection string first
+        encrypted_conn_str = os.getenv('DB_ENCRYPTED_CONNECTION_STRING')
+        if encrypted_conn_str:
+            # Use the encrypted connection string if available
+            connection_string = decrypt_connection_string(encrypted_conn_str)
+            if connection_string:
+                logger.info("📡 Using encrypted connection string from environment")
+                return connection_string
+        
+        # Use the specific Neon PostgreSQL connection string if USE_NEON_DIRECT is set
+        if os.getenv('USE_NEON_DIRECT') == 'true':
+            connection_string = "postgresql://neondb_owner:npg_XBRWbz1SqaU7@ep-winter-morning-a8r8xu2w-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require"
+            logger.info("📡 Using direct Neon PostgreSQL connection string")
+            return connection_string
+                
+        # Check for Neon PostgreSQL configuration
+        if os.getenv('NEON_DB_HOST'):
+            # Build Neon PostgreSQL connection string
+            db_user = os.getenv('NEON_DB_USER')
+            db_password = quote_plus(os.getenv('NEON_DB_PASSWORD', ''))
+            db_host = os.getenv('NEON_DB_HOST')
+            db_port = os.getenv('NEON_DB_PORT', '5432')
+            db_name = os.getenv('NEON_DB_NAME')
+            ssl_mode = os.getenv('NEON_DB_SSL_MODE', 'require')
+            
+            # Neon requires SSL connection
+            connection_string = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}?sslmode={ssl_mode}"
+            logger.info("📡 Using Neon PostgreSQL connection")
+            return connection_string
+        
+        # Fall back to building from individual credentials
         db_config = {
-            'host': 'localhost',
-            'port': '5432',
-            'database': 'resume_customizer',
-            'username': 'postgres',
-            'password': 'Amit@8982'
+            'host': os.getenv('DB_HOST', 'localhost'),
+            'port': os.getenv('DB_PORT', '5432'),
+            'database': os.getenv('DB_NAME', 'resume_customizer'),
+            'username': os.getenv('DB_USER', 'postgres'),
+            'password': os.getenv('DB_PASSWORD', '')
         }
         
         # URL encode password to handle special characters
@@ -136,7 +187,13 @@ class DatabaseConnectionManager:
             f"{db_config['host']}:{db_config['port']}/{db_config['database']}"
         )
         
+        # Log connection info without sensitive data
         logger.info(f"📡 Connecting to database: {db_config['host']}:{db_config['port']}/{db_config['database']}")
+        
+        # Generate encrypted string for future use
+        encrypted = encrypt_connection_string(connection_string)
+        logger.info(f"💡 Add this to your .env file to use encrypted connection:\nDB_ENCRYPTED_CONNECTION_STRING={encrypted}")
+        
         return connection_string
     
     def _setup_event_listeners(self):
@@ -168,22 +225,16 @@ class DatabaseConnectionManager:
             """Handle connection invalidation"""
             logger.warning(f"⚠️ Connection invalidated: {exception}")
             
+    @with_retry(max_retries=3, retry_delay=1.0)
+    @handle_db_errors
     def _test_connection(self) -> bool:
-        """Test database connectivity with retry logic"""
-        max_attempts = 3
-        for attempt in range(max_attempts):
-            try:
-                with self.engine.connect() as conn:
-                    result = conn.execute(text("SELECT 1")).fetchone()
-                    if result and result[0] == 1:
-                        self._connection_stats['successful_connections'] += 1
-                        return True
-            except Exception as e:
-                self._connection_stats['failed_connections'] += 1
-                logger.warning(f"⚠️ Connection test failed (attempt {attempt + 1}): {e}")
-                if attempt < max_attempts - 1:
-                    time.sleep(2 ** attempt)  # Exponential backoff
-                    
+        """Test database connectivity with standardized retry handling"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("SELECT 1")).fetchone()
+            if result and result[0] == 1:
+                self._connection_stats['successful_connections'] += 1
+                return True
+        self._connection_stats['failed_connections'] += 1
         return False
     
     @contextmanager
