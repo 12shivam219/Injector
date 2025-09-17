@@ -28,6 +28,12 @@ from .models import (
     RequirementSummaryView
 )
 
+# Import query optimizer
+from .query_optimizer import (
+    QueryOptimizer,
+    get_query_optimizer
+)
+
 # Migrations module optional - only import if alembic is available
 try:
     from .migrations import (

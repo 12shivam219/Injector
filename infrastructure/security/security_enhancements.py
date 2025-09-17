@@ -78,16 +78,30 @@ class InputSanitizer:
 
 
 class RateLimiter:
-    """Simple rate limiting to prevent abuse."""
+    """Advanced rate limiting to prevent abuse with configurable limits and tracking."""
     
     def __init__(self):
         if 'rate_limits' not in st.session_state:
             st.session_state.rate_limits = {}
+        if 'rate_limit_config' not in st.session_state:
+            # Default rate limit configurations
+            st.session_state.rate_limit_config = {
+                'file_upload': {'limit': 10, 'window': 300, 'size_limit_mb': 50},
+                'api_request': {'limit': 60, 'window': 60, 'size_limit_mb': None},
+                'login_attempt': {'limit': 5, 'window': 300, 'size_limit_mb': None},
+                'form_submission': {'limit': 20, 'window': 60, 'size_limit_mb': None}
+            }
     
-    def check_rate_limit(self, user_id: str, action: str, limit: int = 10, window: int = 60) -> bool:
+    def check_rate_limit(self, user_id: str, action: str, limit: int = None, window: int = None) -> bool:
         """Check if user is within rate limits."""
         now = time.time()
         key = f"{user_id}_{action}"
+        
+        # Use configured limits if not explicitly provided
+        if limit is None or window is None:
+            config = st.session_state.rate_limit_config.get(action, {'limit': 10, 'window': 60})
+            limit = limit or config['limit']
+            window = window or config['window']
         
         if key not in st.session_state.rate_limits:
             st.session_state.rate_limits[key] = []
@@ -105,10 +119,65 @@ class RateLimiter:
         # Add current request
         st.session_state.rate_limits[key].append(now)
         return True
+        
+    def get_remaining_attempts(self, user_id: str, action: str) -> tuple:
+        """Get remaining attempts and time until reset."""
+        now = time.time()
+        key = f"{user_id}_{action}"
+        
+        # Get configuration
+        config = st.session_state.rate_limit_config.get(action, {'limit': 10, 'window': 60})
+        limit = config['limit']
+        window = config['window']
+        
+        if key not in st.session_state.rate_limits:
+            return limit, 0
+        
+        # Clean old entries
+        valid_timestamps = [
+            timestamp for timestamp in st.session_state.rate_limits[key] 
+            if now - timestamp < window
+        ]
+        st.session_state.rate_limits[key] = valid_timestamps
+        
+        # Calculate remaining attempts
+        remaining = max(0, limit - len(valid_timestamps))
+        
+        # Calculate time until reset (when oldest entry expires)
+        time_until_reset = 0
+        if valid_timestamps and remaining == 0:
+            oldest = min(valid_timestamps)
+            time_until_reset = int(oldest + window - now)
+        
+        return remaining, time_until_reset
+    
+    def check_size_limit(self, action: str, size_mb: float) -> bool:
+        """Check if file size is within limits."""
+        config = st.session_state.rate_limit_config.get(action, {'size_limit_mb': 50})
+        size_limit = config.get('size_limit_mb')
+        
+        if size_limit is None:
+            return True
+            
+        return size_mb <= size_limit
+        
+    def update_config(self, action: str, limit: int = None, window: int = None, size_limit_mb: float = None):
+        """Update rate limit configuration."""
+        if action not in st.session_state.rate_limit_config:
+            st.session_state.rate_limit_config[action] = {'limit': 10, 'window': 60, 'size_limit_mb': None}
+            
+        config = st.session_state.rate_limit_config[action]
+        
+        if limit is not None:
+            config['limit'] = limit
+        if window is not None:
+            config['window'] = window
+        if size_limit_mb is not None:
+            config['size_limit_mb'] = size_limit_mb
 
 
-def rate_limit(action: str, limit: int = 10, window: int = 60):
-    """Decorator for rate limiting functions."""
+def rate_limit(action: str, limit: int = None, window: int = None):
+    """Decorator for rate limiting functions using configurable settings."""
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -116,7 +185,12 @@ def rate_limit(action: str, limit: int = 10, window: int = 60):
             limiter = RateLimiter()
             
             if not limiter.check_rate_limit(user_id, action, limit, window):
-                st.error(f"Rate limit exceeded for {action}. Please try again later.")
+                remaining, time_until_reset = limiter.get_remaining_attempts(user_id, action)
+                if time_until_reset > 0:
+                    minutes = max(1, time_until_reset // 60)
+                    st.error(f"🚫 Rate limit exceeded for {action}. Please try again in approximately {minutes} minutes.")
+                else:
+                    st.error(f"🚫 Rate limit exceeded for {action}. Please try again later.")
                 return None
             
             return func(*args, **kwargs)

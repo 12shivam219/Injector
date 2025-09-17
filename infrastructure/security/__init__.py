@@ -20,6 +20,8 @@ from .validators import (
     SecurityValidator
 )
 
+from .auth import AuthenticationManager, auth_manager
+
 __all__ = [
     'SecurePasswordManager',
     'InputSanitizer', 
@@ -30,5 +32,7 @@ __all__ = [
     'validate_session_state',
     'validate_email_format',
     'validate_file_upload',
-    'SecurityValidator'
+    'SecurityValidator',
+    'AuthenticationManager',
+    'auth_manager'
 ]

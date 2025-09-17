@@ -1,6 +1,6 @@
 """
 Monitoring package for Resume Customizer application.
-Provides metrics collection, analytics, and progress tracking functionality.
+Provides metrics collection, analytics, progress tracking, and caching functionality.
 """
 
 from .metrics import (
@@ -38,6 +38,14 @@ from .progress import (
     get_progress_tracker
 )
 
+from .advanced_cache import (
+    CacheLevel,
+    CacheStats,
+    AdvancedCacheManager,
+    get_advanced_cache_manager,
+    cached
+)
+
 __all__ = [
     'Metric',
     'MetricType',
@@ -51,5 +59,10 @@ __all__ = [
     'ProgressTracker',
     'TaskStatus',
     'TaskProgress',
-    'get_progress_tracker'
+    'get_progress_tracker',
+    'CacheLevel',
+    'CacheStats',
+    'AdvancedCacheManager',
+    'get_advanced_cache_manager',
+    'cached'
 ]

@@ -8,10 +8,11 @@ import functools
 import queue
 import os
 import time
+import psutil
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Callable, Tuple, Union
 from io import BytesIO
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
 
 # External imports
@@ -26,6 +27,9 @@ from ..parsers.text_parser import parse_input_text, LegacyParser, get_parser
 from ..parsers.restricted_text_parser import parse_input_text_restricted, RestrictedFormatError
 from .document_processor import get_document_processor, FileProcessor
 from ..email.email_handler import get_email_manager
+from infrastructure.error_handling.file_processor import with_file_error_handling, FileProcessingError, FileErrorHandler
+from infrastructure.error_handling.base import ErrorContext, ErrorSeverity
+from core.errors import ProcessingError
 
 class ResumeManager:
     """Manages resume processing operations."""
@@ -313,6 +317,7 @@ def _process_single_resume_worker(payload: Dict[str, Any]) -> ProcessingResult:
 
 
 class ResumeProcessor:
+    @with_file_error_handling
     def process_single_resume(self, file_data: Dict[str, Any], progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
         """
         Process a single resume file with comprehensive error handling.
@@ -329,13 +334,24 @@ class ResumeProcessor:
         file_obj = file_data.get('file')
         text = file_data.get('text', '')
         
+        # Create error context for detailed error handling
+        error_context = ErrorContext(
+            operation="resume_processing",
+            file_name=filename,
+            severity=ErrorSeverity.HIGH,
+            metadata={
+                "text_length": len(text) if text else 0,
+                "has_file_obj": file_obj is not None
+            }
+        )
+        
         try:
             if not file_obj:
-                return {
-                    'success': False,
-                    'error': "Missing file object in file_data",
-                    'filename': filename
-                }
+                raise FileProcessingError(
+                    "Missing file object in file_data",
+                    context=error_context,
+                    error_code="MISSING_FILE_OBJ"
+                )
                 
             # Update progress if callback provided
             if progress_callback:
@@ -345,15 +361,31 @@ class ResumeProcessor:
             from resume_customizer.processors.document_processor import get_document_processor
             doc_processor = get_document_processor()
             
-            # Parse input text to get points
-            from resume_customizer.parsers.text_parser import parse_input_text
-            parsed_points, _ = parse_input_text(text)
+            try:
+                # Parse input text to get points
+                from resume_customizer.parsers.text_parser import parse_input_text
+                parsed_points, _ = parse_input_text(text)
+            except Exception as parser_error:
+                raise FileProcessingError(
+                    f"Failed to parse input text: {str(parser_error)}",
+                    context=error_context.update(severity=ErrorSeverity.MEDIUM),
+                    error_code="PARSER_ERROR",
+                    original_exception=parser_error
+                )
 
             # Extract matched companies if provided in file_data
             matched_companies = file_data.get('matched_companies') if isinstance(file_data, dict) else None
 
-            # Process the document with the parsed points
-            processed_doc = doc_processor.process_document(file_obj, parsed_points, matched_companies=matched_companies)
+            try:
+                # Process the document with the parsed points
+                processed_doc = doc_processor.process_document(file_obj, parsed_points, matched_companies=matched_companies)
+            except Exception as doc_error:
+                raise FileProcessingError(
+                    f"Document processing failed: {str(doc_error)}",
+                    context=error_context,
+                    error_code="DOC_PROCESSING_ERROR",
+                    original_exception=doc_error
+                )
             
             # Return success result
             return {
@@ -363,19 +395,30 @@ class ResumeProcessor:
                 'processing_time': time.time() - start_time,
                 'tech_stacks_used': [text],
                 'modified_content': processed_doc.getvalue() if hasattr(processed_doc, 'getvalue') else processed_doc,
-                'metadata': {'parser_used': 'TextParser'}
+                'metadata': {
+                    'parser_used': 'TextParser',
+                    'processing_diagnostics': FileErrorHandler.get_diagnostics(filename)
+                }
             }
             
-        except Exception as e:
-            # Log the error
-            logging.error(f"Error processing resume {filename}: {str(e)}")
+        except FileProcessingError as fpe:
+            # This will be handled by the with_file_error_handling decorator
+            # which provides user-friendly messages and detailed logging
+            raise
             
-            # Return error result
+        except Exception as e:
+            # Log the error with enhanced context
+            error_details = FileErrorHandler.capture_error_details(e, filename)
+            logging.error(f"Error processing resume {filename}: {error_details}")
+            
+            # Return error result with enhanced diagnostics
             return {
                 'success': False,
                 'error': str(e),
+                'error_details': error_details,
                 'filename': filename,
-                'processing_time': time.time() - start_time
+                'processing_time': time.time() - start_time,
+                'diagnostics': FileErrorHandler.get_diagnostics(filename)
             }
     
     def process_single_resume_async(self, file_data: Dict[str, Any]):

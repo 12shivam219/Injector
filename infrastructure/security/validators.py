@@ -46,16 +46,24 @@ class FileValidator:
     # Allowed MIME types
     ALLOWED_MIME_TYPES = {
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/msword'
+        'application/msword',
+        'application/pdf'  # Added PDF support
     }
     
     # Allowed file extensions
-    ALLOWED_EXTENSIONS = {'.docx', '.doc'}
+    ALLOWED_EXTENSIONS = {'.docx', '.doc', '.pdf'}  # Added PDF support
     
     # Suspicious file patterns
     SUSPICIOUS_PATTERNS = [
         r'\.exe$', r'\.bat$', r'\.cmd$', r'\.scr$', r'\.vbs$', r'\.js$',
-        r'\.jar$', r'\.com$', r'\.pif$', r'\.msi$', r'\.dll$'
+        r'\.jar$', r'\.com$', r'\.pif$', r'\.msi$', r'\.dll$', r'\.sh$',
+        r'\.py$', r'\.php$', r'\.pl$', r'\.rb$', r'\.ps1$'  # Added more suspicious extensions
+    ]
+    
+    # Content validation patterns
+    CONTENT_VALIDATION_PATTERNS = [
+        r'<script', r'javascript:', r'vbscript:',
+        r'data:text/html', r'<iframe', r'<object', r'<embed'
     ]
     
     def __init__(self):
@@ -83,8 +91,12 @@ class FileValidator:
             # Basic file info
             if hasattr(file_obj, 'getvalue'):
                 file_size = len(file_obj.getvalue())
+                file_content = file_obj.getvalue()
             elif hasattr(file_obj, 'size'):
                 file_size = file_obj.size
+                file_content = file_obj.read() if hasattr(file_obj, 'read') else None
+                if hasattr(file_obj, 'seek'):
+                    file_obj.seek(0)
             elif hasattr(file_obj, 'read'):
                 # Try to read and get length, then reset pointer
                 pos = file_obj.tell() if hasattr(file_obj, 'tell') else None
@@ -94,6 +106,8 @@ class FileValidator:
                     file_obj.seek(pos)
             else:
                 file_size = 0
+                file_content = None
+                
             file_name = getattr(file_obj, 'name', 'unknown')
             # Sanitize filename for security
             clean_file_name = self.sanitizer.sanitize_filename(file_name)
@@ -136,6 +150,20 @@ class FileValidator:
                     result['valid'] = False
                     result['errors'].append(f"File '{file_name}' has suspicious extension")
                     break
+                    
+            # Content validation - check for malicious content
+            if file_content and isinstance(file_content, bytes):
+                try:
+                    # Convert first 8KB to string for pattern matching
+                    content_sample = file_content[:8192].decode('utf-8', errors='ignore')
+                    for pattern in self.CONTENT_VALIDATION_PATTERNS:
+                        if re.search(pattern, content_sample, re.IGNORECASE):
+                            result['valid'] = False
+                            result['errors'].append(f"File '{file_name}' contains potentially malicious content")
+                            break
+                except Exception as e:
+                    logger.warning(f"Content validation error for {file_name}: {str(e)}")
+                    # Don't fail on content validation errors
             
             # MIME type validation (if python-magic is available)
             if MAGIC_AVAILABLE:

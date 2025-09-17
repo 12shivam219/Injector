@@ -20,7 +20,8 @@ APP_CONFIG = {
     "services_enabled": True,
     "async_enabled": True,
     "monitoring_enabled": True,
-    "debug_mode": False
+    "debug_mode": False,
+    "auth_required": True  # Enable authentication requirement
 }
 
 def initialize_app():
@@ -46,6 +47,21 @@ def initialize_app():
     
     # Initialize logging
     logger = get_logger()
+    
+    # Check authentication if required
+    if APP_CONFIG["auth_required"] and not st.session_state.get('authenticated', False):
+        # Get current page
+        import inspect
+        import os
+        current_file = inspect.stack()[1].filename
+        current_filename = os.path.basename(current_file)
+        
+        # Skip auth check for login page
+        if current_filename != "login.py":
+            st.warning("⚠️ Authentication required. Please log in to continue.")
+            st.info("Redirecting to login page...")
+            st.switch_page("pages/login.py")
+            return
     
     # Check bootstrap status
     from infrastructure.utilities.bootstrap_check import check_bootstrap_status
@@ -75,6 +91,14 @@ def initialize_session_state():
             'theme': 'light',
             'show_debug': False,
             'auto_save': True
+        },
+        'authenticated': False,
+        'auth_username': None,
+        'rate_limits': {},
+        'rate_limit_config': {
+            'resume_upload': {'limit': 10, 'window': 60},
+            'email_send': {'limit': 5, 'window': 60},
+            'api_call': {'limit': 20, 'window': 60}
         }
     }
     
@@ -150,6 +174,15 @@ def get_cached_services() -> Dict[str, Any]:
     except ImportError as e:
         services['ui_components'] = None
         logging.warning(f"Could not load UI components: {e}")
+    
+    # Authentication Manager
+    try:
+        from infrastructure.security.auth import AuthenticationManager
+        services['auth_manager'] = AuthenticationManager()
+        logging.info("Authentication manager initialized successfully")
+    except ImportError as e:
+        services['auth_manager'] = None
+        logging.warning(f"Could not load authentication manager: {e}")
     
     # Resume Manager
     try:

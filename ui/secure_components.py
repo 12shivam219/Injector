@@ -27,34 +27,58 @@ class SecureUIComponents:
         self.rate_limiter = RateLimiter()
         self.session_manager = SessionSecurityManager()
     
-    @rate_limit("file_upload", limit=10, window=300)  # 10 uploads per 5 minutes
-    def render_secure_file_upload(self, key: str = "secure_file_upload"):
+    @rate_limit("file_upload")  # Using configured limits from RateLimiter
+    def render_secure_file_upload(self, key: str = "secure_file_upload", allowed_types=None):
         """Render secure file upload with rate limiting and validation."""
         
         # Check session timeout
         if self.session_manager.session_timeout_check():
             st.warning("⚠️ Your session has timed out for security. Please refresh the page.")
             return None
+            
+        # Get rate limit info for user feedback
+        user_id = st.session_state.get('user_id', 'anonymous')
+        remaining, time_until_reset = self.rate_limiter.get_remaining_attempts(user_id, "file_upload")
+        
+        # Get file size limit from config
+        size_limit = st.session_state.rate_limit_config.get('file_upload', {}).get('size_limit_mb', 50)
+        
+        # Default to DOCX if not specified
+        if allowed_types is None:
+            allowed_types = ["docx", "pdf"]
+        
+        # Show rate limit status
+        if remaining > 0:
+            help_text = f"Maximum {remaining} more uploads allowed. Files up to {size_limit}MB each. Formats: {', '.join(allowed_types).upper()}"
+        else:
+            minutes_left = max(1, time_until_reset // 60)
+            help_text = f"⚠️ Upload limit reached. Please wait ~{minutes_left} minutes before uploading more files."
+            st.warning(help_text)
         
         # File upload with security checks
         uploaded_files = st.file_uploader(
-            "📁 Upload Resume Files (DOCX only)",
-            type=["docx"],
+            "📁 Upload Resume Files",
+            type=allowed_types,
             accept_multiple_files=True,
             key=key,
-            help="Maximum 10 files, 50MB each. Only DOCX format accepted."
+            help=help_text
         )
         
         if uploaded_files:
             # Rate limiting check
-            user_id = st.session_state.get('user_id', 'anonymous')
-            if not self.rate_limiter.check_rate_limit(user_id, "file_upload", limit=10, window=300):
+            if not self.rate_limiter.check_rate_limit(user_id, "file_upload"):
                 st.error("🚫 Upload rate limit exceeded. Please wait before uploading more files.")
                 return None
             
             # Validate and sanitize filenames
             secure_files = []
             for file in uploaded_files:
+                # Check file size
+                file_size_mb = len(file.getvalue()) / (1024 * 1024) if hasattr(file, 'getvalue') else 0
+                if not self.rate_limiter.check_size_limit("file_upload", file_size_mb):
+                    st.error(f"🚫 File '{file.name}' exceeds the maximum size limit of {size_limit}MB.")
+                    continue
+                
                 sanitized_name = self.sanitizer.sanitize_filename(file.name)
                 if sanitized_name != file.name:
                     st.warning(f"⚠️ Filename '{file.name}' was sanitized to '{sanitized_name}'")
@@ -64,8 +88,13 @@ class SecureUIComponents:
                     'file': file,
                     'original_name': file.name,
                     'secure_name': sanitized_name,
-                    'size_mb': len(file.getvalue()) / (1024 * 1024) if hasattr(file, 'getvalue') else 0
+                    'size_mb': file_size_mb
                 })
+            
+            # Show remaining uploads after this batch
+            remaining, _ = self.rate_limiter.get_remaining_attempts(user_id, "file_upload")
+            if remaining <= 3:  # Low on remaining uploads
+                st.info(f"ℹ️ You have {remaining} uploads remaining before reaching the rate limit.")
             
             return secure_files
         

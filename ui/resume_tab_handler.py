@@ -615,7 +615,33 @@ class ResumeTabHandler:
         with st.spinner(f"Processing {file.name}…"):
             result = self.resume_manager.process_single_resume(file_data, progress_callback=progress_callback)
             if not result['success']:
-                st.error(f"❌ {result['error']}")
+                error_msg = f"❌ {result['error']}"
+                
+                # Display detailed error information if available
+                if 'error_details' in result:
+                    with st.expander("📋 Error Details", expanded=True):
+                        st.markdown("**Error Information:**")
+                        st.code(result['error_details'])
+                        
+                        # Show diagnostics if available
+                        if 'diagnostics' in result:
+                            st.markdown("**Diagnostics:**")
+                            for key, value in result['diagnostics'].items():
+                                st.markdown(f"- **{key}**: {value}")
+                        
+                        # Show troubleshooting tips based on error type
+                        st.markdown("**Troubleshooting Tips:**")
+                        if "parser" in result['error'].lower():
+                            st.markdown("- Check your input text format")
+                            st.markdown("- Ensure there are no special characters causing issues")
+                        elif "document" in result['error'].lower():
+                            st.markdown("- Verify your document is not corrupted")
+                            st.markdown("- Try saving your document in a different format")
+                        elif "permission" in result['error'].lower():
+                            st.markdown("- The file might be locked by another application")
+                            st.markdown("- Try closing other applications that might be using this file")
+                
+                st.error(error_msg)
                 return
 
             st.success(f"✅ Resume processed with {result['points_added']} points added!")
