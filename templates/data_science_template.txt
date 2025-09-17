@@ -1,0 +1,54 @@
+YOUR FULL NAME
+Data Scientist | Machine Learning Engineer
+Phone Number | Email Address | City, State | LinkedIn Profile | GitHub/Portfolio
+
+PROFESSIONAL SUMMARY
+Data Scientist with [X] years of experience building ML models that generated [$amount] in business value. Expert in [ML techniques] with proven ability to extract insights from [data types] and deploy models serving [scale] predictions daily. Strong background in [domain expertise] with [number] published papers/projects.
+
+TECHNICAL SKILLS
+• Programming: Python, R, SQL, Scala, PySpark
+• ML Libraries: scikit-learn, TensorFlow, PyTorch, XGBoost, LightGBM
+• Data Processing: Pandas, NumPy, Apache Spark, Dask, Apache Airflow
+• Visualization: Matplotlib, Seaborn, Plotly, Tableau, Power BI
+• Cloud Platforms: AWS (SageMaker, EMR, S3), Google Cloud (Vertex AI, BigQuery)
+• Databases: PostgreSQL, MongoDB, Snowflake, Redshift, BigQuery
+• MLOps: Docker, Kubernetes, MLflow, Kubeflow, Git, Jenkins
+
+PROFESSIONAL EXPERIENCE
+
+[Job Title] | [Company Name] | [City, State] | [Start Date - End Date]
+• Developed [ML model type] achieving [accuracy/performance metric] on [dataset size] samples, improving [business metric] by [percentage]
+• Built recommendation system using [algorithms] that increased [business outcome] by [amount/percentage] for [user base]
+• Implemented real-time ML pipeline processing [volume] events daily with [latency] response time using [technologies]
+• Led data science team of [size] in [project], delivering [outcome] and saving [$amount] annually
+• Created A/B testing framework that improved model performance evaluation and reduced deployment risk by [percentage]
+
+KEY PROJECTS & RESEARCH
+
+[Project Name] | [ML Techniques Used] | [Timeline]
+• Problem: [business problem solved]
+• Solution: Developed [model type] using [algorithms/techniques]
+• Data: [dataset description, size, sources]
+• Results: [accuracy metrics] leading to [business impact]
+• Technologies: [tech stack]
+
+[Research Project] | [Publication/Conference] | [Year]
+• Researched [topic] using [methodologies]
+• Dataset: [description and size]
+• Findings: [key insights and contributions]
+• Impact: [citations, adoption, business value]
+
+PUBLICATIONS & PRESENTATIONS
+• "[Paper Title]", [Conference/Journal Name], [Year]
+• "[Presentation Title]", [Conference/Event], [Year]
+• [Number] peer-reviewed publications with [total citations] citations
+
+EDUCATION
+[Degree] in [Field] | [University Name] | [Graduation Year]
+Thesis: "[Thesis Title]" (if relevant)
+GPA: [if 3.5 or higher]
+
+CERTIFICATIONS
+• AWS Certified Machine Learning - Specialty
+• Google Cloud Professional Data Engineer
+• [Relevant ML/Data Certifications]

@@ -1,0 +1,3 @@
+@echo off
+echo Starting Celery Worker...
+python start_celery_worker.py

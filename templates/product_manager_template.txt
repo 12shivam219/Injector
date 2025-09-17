@@ -1,0 +1,47 @@
+YOUR FULL NAME
+Product Manager | Technical Product Manager
+Phone Number | Email Address | City, State | LinkedIn Profile | Portfolio URL
+
+PROFESSIONAL SUMMARY
+Strategic Product Manager with [X] years of experience driving product growth for [product types]. Successfully launched [number] products generating [$revenue] and serving [user count] users. Expert in [domain] with proven ability to collaborate across engineering, design, and business teams to deliver [outcomes].
+
+CORE COMPETENCIES
+• Product Strategy & Roadmap Planning
+• User Research & Market Analysis
+• Data Analytics & A/B Testing
+• Cross-functional Team Leadership
+• Agile/Scrum Methodologies
+• Technical Product Management
+• Stakeholder Management
+• Go-to-Market Strategy
+
+PROFESSIONAL EXPERIENCE
+
+[Job Title] | [Company Name] | [City, State] | [Start Date - End Date]
+• Led product strategy for [product/feature] serving [user count] users, achieving [key metrics] and driving [$revenue] in annual revenue
+• Collaborated with engineering team of [size] to deliver [major features/products], resulting in [percentage] increase in user engagement
+• Conducted user research with [number] participants, identifying key insights that informed product roadmap and improved user satisfaction by [percentage]
+• Managed product backlog of [number] features, prioritizing based on [criteria] and delivering [percentage] of roadmap items on schedule
+• Implemented data analytics framework tracking [number] KPIs, enabling data-driven product decisions that improved [metrics]
+
+[Previous Job Title] | [Company Name] | [City, State] | [Start Date - End Date]
+• Launched [product/feature] in [timeframe], achieving [adoption metric] within [time period] and exceeding targets by [percentage]
+• Led cross-functional team of [number] including engineers, designers, and marketers to deliver [outcome]
+• Analyzed market opportunities identifying [$value] potential revenue stream through [strategy/approach]
+• Established product metrics framework reducing time-to-insight from [before] to [after]
+
+KEY ACHIEVEMENTS
+• Product Launch: Successfully launched [product name] to [user base], achieving [metric] in first [timeframe]
+• Revenue Growth: Drove [percentage] increase in [revenue stream] through [strategy]
+• User Experience: Improved user satisfaction scores from [before] to [after] through [initiatives]
+• Process Optimization: Reduced product development cycle time by [percentage] through [improvements]
+
+EDUCATION
+[Degree] in [Field] | [University Name] | [Graduation Year]
+Relevant Coursework: Product Management, Business Strategy, Data Analysis
+GPA: [if 3.5 or higher]
+
+CERTIFICATIONS
+• Certified Scrum Product Owner (CSPO)
+• Google Analytics Certified
+• [Product Management Certification]

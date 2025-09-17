@@ -1,0 +1,40 @@
+[global]
+developmentMode = false
+showWarningOnDirectExecution = false
+
+[server]
+runOnSave = false
+port = 5000
+enableCORS = false
+enableXsrfProtection = false
+maxUploadSize = 200
+maxMessageSize = 200
+baseUrlPath = ""
+enableWebsocketCompression = true
+enableStaticServing = false
+headless = true
+address = "0.0.0.0"
+
+[browser]
+gatherUsageStats = false
+serverAddress = "0.0.0.0"
+
+[theme]
+primaryColor = "#1f77b4"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#262730"
+font = "sans serif"
+
+[runner]
+magicEnabled = true
+fastReruns = true
+enforceSerializableSessionState = false
+
+[client]
+showErrorDetails = true
+toolbarMode = "auto"
+
+[logger]
+level = "info"
+messageFormat = "%(asctime)s.%(msecs)03d [%(levelname)s] %(name)s: %(message)s"

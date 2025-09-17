@@ -1,0 +1,125 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+
+# Log files
+*.log
+
+# Uploaded files (if you want to exclude them)
+uploads/
+temp/
+
+# Email credentials (if stored in files)
+email_config.json
+credentials.json
+client_secrets.json
+client_secret.json
+
+# Google OAuth tokens and credentials
+token_gdrive.pkl
+*.pkl
+
+# Requirements storage
+requirements.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# SSL certificates
+ssl/
+*.pem
+*.crt
+*.key
+
+# Config files with secrets
+secrets.toml
+.secrets
+
+# Application specific
+logs/
+*.exchange
+control/
+database/*.db
+database/*.sqlite*
+
+# Test outputs
+test_output/
+*_output.docx
+*_test_output.*
+
+# Cache directories
+.cache/
+cache/

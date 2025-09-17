@@ -1,0 +1,61 @@
+# Resume Customizer Pro - Clean Requirements
+# Python 3.13 compatible versions
+# Generated on 2025-09-14
+
+# Core Web Framework
+streamlit>=1.28.0,<2.0.0
+
+# Document Processing
+python-docx>=0.8.11
+mammoth>=1.6.0
+PyPDF2>=3.0.0
+python-multipart
+
+# Database Dependencies
+sqlalchemy>=2.0.0,<3.0.0
+psycopg2-binary>=2.9.0
+alembic>=1.12.0
+sqlalchemy-utils>=0.41.0
+
+# Distributed Task Queue (Optional)
+celery>=5.3.0
+redis>=4.0.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+rapidfuzz>=3.0.0  # For fuzzy string matching
+
+# Security & Authentication
+cryptography>=41.0.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+
+# System & Performance Monitoring
+psutil>=5.9.0
+python-dateutil>=2.8.2
+pytz>=2023.3
+
+# Logging & Monitoring
+concurrent-log-handler>=0.9.24
+structlog>=23.0.0
+tqdm>=4.65.0
+colorama>=0.4.6
+
+# Configuration Management
+python-dotenv>=1.0.0
+
+# Email & Communication
+yagmail>=0.15.293
+
+# Additional Document Support
+python-pptx>=0.6.21
+
+# Development Dependencies (Optional)
+# pytest>=7.0.0
+# pytest-asyncio>=0.21.0
+# black>=23.0.0
+# flake8>=6.0.0
+
+# Windows-specific dependencies
+# pywin32>=306  # Uncomment if needed for Windows-specific features
