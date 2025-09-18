@@ -59,6 +59,22 @@ class DatabaseConnectionManager:
     - Thread-safe operations
     """
     
+    @contextmanager
+    def get_session(self) -> Generator[Session, None, None]:
+        """Get a database session using context manager"""
+        if not self._is_connected:
+            raise ConnectionError("Database not initialized. Call initialize() first.")
+        
+        session = self.SessionLocal()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+    
     _instance = None
     _lock = threading.Lock()
     

@@ -28,14 +28,30 @@ class SecurePasswordManager:
         """Decrypt password when needed."""
         return self.cipher.decrypt(encrypted_password).decode()
     
-    def hash_password(self, password: str, salt: Optional[bytes] = None) -> tuple:
+    def hash_password(self, password: str, salt: Optional[bytes] = None) -> bytes:
         """Hash password with salt for secure storage."""
         if salt is None:
             salt = secrets.token_bytes(32)
         
         # Using PBKDF2 with SHA256
         password_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
-        return password_hash, salt
+        # Combine salt and hash for storage
+        return salt + password_hash
+        
+    def verify_password(self, password: str, stored_password_hash: bytes) -> bool:
+        """Verify a password against stored hash."""
+        if len(stored_password_hash) < 32:  # We need at least the salt
+            return False
+        
+        # Extract salt from stored hash
+        salt = stored_password_hash[:32]
+        stored_hash = stored_password_hash[32:]
+        
+        # Hash the provided password with the same salt
+        password_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
+        
+        # Compare hashes
+        return password_hash == stored_hash
 
 
 class InputSanitizer:

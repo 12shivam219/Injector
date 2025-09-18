@@ -19,11 +19,15 @@ def main():
     st.markdown(f"### 🎯 **Welcome to Resume Customizer v{APP_CONFIG['version']}**")
     
     # Check if formats exist
-    services = get_cached_services()
-    db_session = services.get('db_session')
-    if db_session:
-        from database.format_models import ResumeFormat
-        formats_exist = db_session.query(ResumeFormat).first() is not None
+    from database.format_models import ResumeFormat
+    from database.session_utils import get_session
+    
+    try:
+        with get_session() as session:
+            formats_exist = session.query(ResumeFormat).first() is not None
+    except Exception as e:
+        st.error(f"Error connecting to database: {str(e)}")
+        formats_exist = False
         
         if not formats_exist:
             st.warning("""

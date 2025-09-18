@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from dotenv import load_dotenv
 import logging
 from sqlalchemy.types import TypeDecorator, String
-from sqlalchemy.ext.mutable import MutableType
+from sqlalchemy.ext.mutable import MutableComposite
 
 # Load environment variables
 load_dotenv()
@@ -181,7 +181,7 @@ class EncryptedString(TypeDecorator):
         return None
 
 
-class MutableEncryptedString(MutableType):
+class MutableEncryptedString(MutableComposite):
     """
     Mutable encrypted string type for SQLAlchemy models
     Allows tracking changes to encrypted fields

@@ -63,7 +63,7 @@ class AuthenticationManager:
                 # Create new user
                 new_user = User(
                     username=username,
-                    password_hash=password_hash,
+                    password_hash=password_hash,  # Now returns bytes directly
                     email=email,
                     created_at=datetime.datetime.now(),
                     is_active=True

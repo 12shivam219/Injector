@@ -12,7 +12,7 @@ import enum
 from datetime import datetime
 
 from database.base_model import BaseModel
-from database.encryption import EncryptedString
+from database.custom_types import EncryptedBinaryString
 
 class User(BaseModel):
     """User model for authentication and user management."""
@@ -22,9 +22,9 @@ class User(BaseModel):
     username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(100), unique=True, nullable=False, index=True)
     
-    # Authentication - password hash is now encrypted at rest
-    password_hash = Column(EncryptedString(255), nullable=False)
-    reset_token = Column(EncryptedString(100), nullable=True)
+    # Authentication
+    password_hash = Column(EncryptedBinaryString, nullable=False)
+    reset_token = Column(String(100), nullable=True)
     reset_token_expiry = Column(DateTime(timezone=True), nullable=True)
     
     # User status
@@ -37,8 +37,8 @@ class User(BaseModel):
     profile_data = Column(JSONB, default=dict)
     
     # Additional security fields
-    security_questions = Column(EncryptedString(500), nullable=True)
-    mfa_secret = Column(EncryptedString(100), nullable=True)
+    security_questions = Column(String(500), nullable=True)
+    mfa_secret = Column(String(100), nullable=True)
     
     # Constraints and indexes
     __table_args__ = (
