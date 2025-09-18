@@ -5,8 +5,12 @@ Modern Streamlit multi-page application for resume customization
 
 import streamlit as st
 
-# Import the shared bootstrap
+# Import the shared bootstrap and cloud config
 from infrastructure.app.app_bootstrap import initialize_app, get_cached_services, APP_CONFIG
+from infrastructure.app.streamlit_config import setup_streamlit_env
+
+# Set up Streamlit environment for cloud deployment
+setup_streamlit_env()
 
 def main():
     """Main application entry point."""
