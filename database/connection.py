@@ -168,9 +168,63 @@ class DatabaseConnectionManager:
             else:
                 logger.error("❌ Failed to establish database connection")
                 return False
-                
         except Exception as e:
             logger.error(f"❌ Database initialization failed: {e}")
+
+            # If running in development, fall back to a lightweight SQLite DB to keep development smooth
+            env_mode = os.getenv('ENV', os.getenv('ENVIRONMENT', 'development')).lower()
+            if env_mode in ('dev', 'development', ''):
+                try:
+                    sqlite_url = f"sqlite:///{os.getcwd().replace('\\', '/')}/dev_database.sqlite3"
+                    logger.warning(f"Falling back to local SQLite database for development: {sqlite_url}")
+                    # Minimal engine config for SQLite
+                    sqlite_engine = create_engine(sqlite_url, connect_args={})
+                    self.engine = sqlite_engine
+                    self.SessionLocal = sessionmaker(
+                        autocommit=False,
+                        autoflush=True,
+                        bind=self.engine,
+                        expire_on_commit=True
+                    )
+                    # Ensure schema exists if models are importable
+                    try:
+                        # Import all model modules first so their Table objects register
+                        # with the shared SQLAlchemy metadata during module import.
+                        import importlib
+                        model_modules = [
+                            'database.models',
+                            'database.base_model',
+                            'database.user_models',
+                            'database.resume_models',
+                            'database.format_models',
+                            'database.rbac',
+                        ]
+                        created = []
+                        for mod in model_modules:
+                            try:
+                                importlib.import_module(mod)
+                                created.append(mod)
+                            except Exception as e:
+                                logger.debug(f"Could not import {mod}: {e}")
+
+                        # Create tables from the shared Base metadata after imports
+                        try:
+                            from .base import Base as _shared_base
+                            _shared_base.metadata.create_all(bind=self.engine)
+                        except Exception as e:
+                            logger.debug(f"Failed to create_all on shared Base: {e}")
+
+                        if created:
+                            logger.info(f"Created or ensured tables for modules: {', '.join(created)}")
+                    except Exception:
+                        pass
+                    self._is_connected = True
+                    logger.info("✅ Development SQLite fallback initialized successfully")
+                    return True
+                except Exception as sqlite_exc:
+                    logger.error(f"❌ Development SQLite fallback failed: {sqlite_exc}")
+                    return False
+
             return False
     
     def create_database_if_not_exists(self) -> bool:
@@ -483,6 +537,18 @@ db_manager = DatabaseConnectionManager()
 # Convenience functions for external use
 def get_db_session():
     """Get database session context manager"""
+    # If the connection manager is not initialized, try to initialize it automatically.
+    if not getattr(db_manager, '_is_connected', False):
+        try:
+            initialized = db_manager.initialize()
+            if not initialized:
+                raise ConnectionError(
+                    "Database not initialized. Auto-initialize attempted but failed."
+                )
+        except Exception as e:
+            # Raise a clear connection error for callers such as authentication routines
+            raise ConnectionError(f"Database not initialized and auto-initialize failed: {e}")
+
     return db_manager.get_session()
 
 def initialize_database(database_url: Optional[str] = None, **kwargs) -> bool:

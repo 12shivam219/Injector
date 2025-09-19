@@ -1,0 +1,33 @@
+# render.yaml
+services:
+  - type: web
+    name: resume-customizer
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: USE_SQLITE_FALLBACK
+        value: false
+      - key: DEBUG
+        value: false
+      - key: LOG_LEVEL
+        value: ERROR
+      - key: DB_MIN_CONNECTIONS
+        value: 2
+      - key: DB_MAX_CONNECTIONS
+        value: 10
+      - key: DB_CONNECTION_TIMEOUT
+        value: 30
+      - key: DB_IDLE_TIMEOUT
+        value: 300
+      - key: DB_POOL_RECYCLE
+        value: 300
+      - key: DATABASE_URL
+        sync: false # Will be set manually in Render dashboard
+      - key: DB_ENCRYPTION_KEY
+        sync: false # Will be set manually in Render dashboard
+      - key: USER_DATA_ENCRYPTION_KEY
+        sync: false # Will be set manually in Render dashboard

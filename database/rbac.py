@@ -6,11 +6,11 @@ Provides user role management and permission enforcement for database operations
 import enum
 from typing import List, Dict, Optional, Set, Any
 from sqlalchemy import Column, Integer, String, ForeignKey, Table, Enum, Boolean
-from sqlalchemy.ext.declarative import declarative_base
+from .base import Base
 from sqlalchemy.orm import relationship, Session
 from database.error_handler import handle_db_errors
 
-Base = declarative_base()
+
 
 # Define database roles
 class Role(enum.Enum):

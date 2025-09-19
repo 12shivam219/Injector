@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+import sys
+from pathlib import Path as _Path
+# Ensure repository root is on sys.path when running this script from the scripts/ directory
+_ROOT = _Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 """
 Database Setup Script for Resume Customizer
 Easy PostgreSQL integration and migration from JSON storage
@@ -100,19 +106,26 @@ def initialize_database():
 def test_database_connection():
     """Test database connection"""
     try:
-        from database import get_connection_manager
-        
+        from database import get_connection_manager, initialize_database
+
         print("🔍 Testing database connection...")
-        
+
+        # Ensure the connection manager is initialized before testing
+        print("� Initializing database connection for test...")
+        if not initialize_database():
+            print("❌ Failed to initialize database connection for test")
+            return False
+
+        from sqlalchemy import text
+
         conn_manager = get_connection_manager()
         with conn_manager.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT 1")
-            result = cursor.fetchone()
-            if result:
+            result = conn.execute(text("SELECT 1")).fetchone()
+            if result and result[0] == 1:
                 print("✅ Database connection successful")
-            
-            return True
+                return True
+
+        return False
     except Exception as e:
         print(f"❌ Database connection failed: {str(e)}")
         return False

@@ -5,7 +5,6 @@ import os
 import sys
 import logging
 from sqlalchemy import create_engine, text, MetaData, Column, String, Boolean, DateTime, Text, JSON
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
@@ -14,8 +13,7 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create base class for declarative models
-Base = declarative_base()
+from database.base import Base
 
 # Define User model
 class User(Base):

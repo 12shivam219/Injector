@@ -12,6 +12,23 @@ from infrastructure.app.streamlit_config import setup_streamlit_env
 # Set up Streamlit environment for cloud deployment
 setup_streamlit_env()
 
+# Startup key sanity check: ensure encryption keys are present in production
+import os
+def _check_encryption_keys():
+    env_mode = os.getenv('ENV', os.getenv('ENVIRONMENT', 'development')).lower()
+    missing = [k for k in ('DB_ENCRYPTION_KEY', 'USER_DATA_ENCRYPTION_KEY') if not os.getenv(k)]
+    if missing:
+        if env_mode in ('dev', 'development', ''):
+            # In development warn but continue
+            import streamlit as _st
+            _st.warning(f"Missing encryption keys: {', '.join(missing)} — generated temporary keys will be used. Set environment variables for production.")
+        else:
+            import streamlit as _st
+            _st.error(f"Missing required encryption keys: {', '.join(missing)}. Set these in your environment before starting the app.")
+            raise SystemExit(1)
+
+_check_encryption_keys()
+
 def main():
     """Main application entry point."""
     

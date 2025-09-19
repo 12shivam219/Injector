@@ -2,11 +2,9 @@
 Base model for database models with common fields and functionality
 """
 from sqlalchemy import Column, String, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-import uuid
 from datetime import datetime
-
-Base = declarative_base()
+import uuid
+from .base import Base
 
 class BaseModel(Base):
     """

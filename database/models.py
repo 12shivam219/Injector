@@ -7,15 +7,13 @@ from sqlalchemy import (
     Column, Integer, String, Text, DateTime, Boolean, JSON, 
     ForeignKey, Index, UniqueConstraint, CheckConstraint, Float, BigInteger
 )
-from sqlalchemy.ext.declarative import declarative_base
+from .base import Base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.sql import func
 from datetime import datetime
 import uuid
 from typing import Dict, Any, List, Optional
-
-Base = declarative_base()
 
 class BaseModel(Base):
     """Base model with common fields for all tables"""

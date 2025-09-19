@@ -1,4 +1,30 @@
-# 🎯 Resume Customizer Pro - Enterprise Multi-User Platform
+# 🎯 Resum## 📊 Database Features
+
+- **PostgreSQL Support**: Primary database with Neon.tech integration
+- **SQLite Fallback**: Development environment support
+- **Connection Pooling**: Optimized for cloud deployment
+- **Query Monitoring**: Performance tracking and optimization
+- **Migration System**: Automated schema management
+- **Backup System**: Automated backup procedures
+
+## 🚀 Deployment
+
+### Database (Neon.tech)
+
+1. Create a free account on [Neon.tech](https://neon.tech)
+2. Create a new project
+3. Get your database connection string
+4. Set up the environment variables as described in `.env.example`
+
+### Application (Render.com)
+
+1. Fork this repository to your GitHub account
+2. Create a new Web Service on [Render.com](https://render.com)
+3. Connect your GitHub repository
+4. Use the following settings:
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `streamlit run app.py`
+5. Set up your environment variables in the Render dashboarder Pro - Enterprise Multi-User Platform
 
 A comprehensive resume customization platform with advanced multi-user features, smart email automation, team collaboration, and high-performance architecture supporting 50+ concur└── 📁 resume_customizer/ # Core resume customization logic
 │ ├── **init**.py
@@ -294,7 +320,14 @@ injector/
     └── config.toml
 ```
 
-## 🔒 Security
+## � Encryption Keys
+
+- **Generate keys**: Run `python scripts/generate_keys.py` to produce two Fernet keys.
+- **Local development**: Copy the generated values into a local `.env` file (this repo now includes an example `.env.example`).
+- **Production**: Do NOT commit real keys. Use your deployment platform's secret manager (Streamlit secrets, Vault, environment variables) to set `DB_ENCRYPTION_KEY` and `USER_DATA_ENCRYPTION_KEY`.
+- **Streamlit Cloud**: Add keys to Streamlit secrets and they will be loaded by `infrastructure/app/streamlit_config.py`.
+
+## �🔒 Security
 
 - **No Credential Storage**: Email credentials are never stored
 - **App-Specific Passwords**: Supports secure authentication methods

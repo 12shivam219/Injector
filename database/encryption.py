@@ -41,27 +41,53 @@ class EncryptionManager:
     def _get_or_create_key(self, env_var_name):
         """Get encryption key from environment or create a new one"""
         key = os.getenv(env_var_name)
-        
-        if not key:
-            # Generate a new key if not found in environment
-            salt = os.urandom(16)
-            # Use application name as password with salt
-            app_name = os.getenv('APP_NAME', 'ResumeCustomizer')
-            password = f"{app_name}_{env_var_name}_{secrets.token_hex(8)}"
-            kdf = PBKDF2HMAC(
-                algorithm=hashes.SHA256(),
-                length=32,
-                salt=salt,
-                iterations=100000,
+
+        # Decide behavior based on environment early
+        env_mode = os.getenv('ENV', os.getenv('ENVIRONMENT', 'development')).lower()
+
+        # If key is present, validate it's a proper Fernet key and return it encoded
+        if key:
+            try:
+                decoded = base64.urlsafe_b64decode(key.encode())
+                if len(decoded) != 32:
+                    raise ValueError("incorrect key length")
+                return key.encode()
+            except Exception:
+                msg = (
+                    f"Environment variable {env_var_name} is not a valid Fernet key. "
+                    "Generate a new key with `python scripts/generate_keys.py` or use the setup script."
+                )
+                if env_mode in ('dev', 'development', ''):
+                    logger.warning(msg + " Using a temporary development key instead.")
+                    # fall through to generate a temporary dev key below
+                else:
+                    # In production-like environments, fail fast with a clear message
+                    raise RuntimeError(msg)
+
+        # No valid key found in environment -> generate temporary key in development
+        salt = os.urandom(16)
+        app_name = os.getenv('APP_NAME', 'ResumeCustomizer')
+        password = f"{app_name}_{env_var_name}_{secrets.token_hex(8)}"
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=100000,
+        )
+        generated_key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+        if env_mode in ('dev', 'development', ''):
+            logger.warning(
+                "%s missing or invalid; generated a temporary key for development. "
+                "Add a stable key to your environment as %s for production.",
+                env_var_name, env_var_name,
             )
-            key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
-            # Log that a key was generated but do NOT print the key value to stdout or logs
-            logger.info(f"Generated new encryption key — please add it to your .env as {env_var_name}")
-        else:
-            # Use the key from environment
-            key = key.encode()
-            
-        return key
+            return generated_key
+
+        # In production-like environments, fail fast so secrets aren't silently regenerated
+        raise RuntimeError(
+            f"Missing or invalid environment variable {env_var_name}. "
+            "Set this as a secure secret in your deployment environment."
+        )
     
     def encrypt_connection_string(self, connection_string):
         """

@@ -113,9 +113,13 @@ class DatabaseConfig:
                         config[config_key] = env_value
                     break  # Use first found environment variable
         
-        # Special handling for DATABASE_URL
+        # Special handling for DATABASE_URL: only use it if no explicit DB_* vars were provided
         database_url = os.getenv('DATABASE_URL')
-        if database_url:
+        # Determine if any explicit DB_* env vars were supplied for core connection fields
+        explicit_keys = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']
+        explicit_present = any(os.getenv(k) is not None for k in explicit_keys)
+
+        if database_url and not explicit_present:
             parsed_config = self._parse_database_url(database_url)
             if parsed_config:
                 config.update(parsed_config)

@@ -5,14 +5,12 @@ import os
 import sys
 import logging
 from sqlalchemy import create_engine, text, MetaData, Column, String, Boolean, DateTime
-from sqlalchemy.ext.declarative import declarative_base
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create base class for declarative models
-Base = declarative_base()
+from database.base import Base
 
 # Define User model
 class User(Base):
