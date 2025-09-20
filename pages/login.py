@@ -31,20 +31,10 @@ def main():
     
     # Check if already logged in
     if st.session_state.get('authenticated', False):
-        st.success(f"✅ You are logged in as {st.session_state.get('auth_username', 'User')}")
-        
-        if st.button("📋 Go to Dashboard"):
-            st.switch_page("app.py")
-            
-        if st.button("🚪 Logout"):
-            success, message = auth_manager.logout()
-            if success:
-                st.success(message)
-                st.rerun()
-            else:
-                st.error(message)
-        
-        return
+        # Log the redirection
+        logger.info(f"User {st.session_state.get('auth_username')} already logged in, redirecting to main app")
+        # Redirect to main app
+        st.switch_page("app.py")
     
     # Initialize active tab if not set
     if 'active_tab' not in st.session_state:
