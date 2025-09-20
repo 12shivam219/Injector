@@ -46,8 +46,18 @@ def main():
         
         return
     
+    # Initialize active tab if not set
+    if 'active_tab' not in st.session_state:
+        st.session_state.active_tab = "login"
+    
     # Create tabs for login and registration
     tab1, tab2 = st.tabs(["🔑 Login", "📝 Register"])
+    
+    # Switch to the active tab
+    if st.session_state.active_tab == "login":
+        tab1.empty()  # Clear any previous content
+    else:
+        tab2.empty()  # Clear any previous content
     
     with tab1:
         st.markdown("### 🔑 Login to your account")
@@ -101,14 +111,26 @@ def main():
             else:
                 success, message = auth_manager.register_user(new_username, new_password, new_email)
                 if success:
+                    # Clear registration form data from session state
+                    for key in ['register_username', 'register_email', 'register_password', 'confirm_password']:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    
+                    # Set active tab to login
+                    st.session_state.active_tab = "login"
+                    
                     st.success(message)
                     st.info("Please log in with your new account")
+                    
                     # Log successful registration
                     audit_logger.log_security_event(
                         "registration_success",
                         new_username,
                         {"source": "login_page", "email": new_email}
                     )
+                    
+                    # Rerun to refresh the page
+                    st.rerun()
                 else:
                     st.error(message)
                     # Log failed registration
