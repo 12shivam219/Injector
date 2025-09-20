@@ -1,10 +1,15 @@
-# 🎯 Resum## 📊 Database Features
+# 🎯 Resume Customizer Pro
 
-- **PostgreSQL Support**: Primary database with Neon.tech integration
-- **Connection Pooling**: Optimized for cloud deployment
-- **Query Monitoring**: Performance tracking and optimization
-- **Migration System**: Automated schema management
-- **Backup System**: Automated backup procedures
+A comprehensive resume customization platform with advanced multi-user features, smart email automation, team collaboration, and high-performance architecture.
+
+## 🔐 Security Features
+
+- **Password Encryption**: AES-256 encryption for email passwords
+- **Secure Authentication**: PBKDF2 password hashing
+- **Input Validation**: Comprehensive input sanitization
+- **Rate Limiting**: Protection against brute force attacks
+- **Session Management**: Secure session handling
+- **Access Control**: Role-based permissions system
 
 ## 🚀 Deployment
 
@@ -15,14 +20,33 @@
 3. Get your database connection string
 4. Set up the environment variables as described in `.env.example`
 
-### Application (Render.com)
+### Installation
+
+The project uses a modular requirements structure for different environments:
+
+1. **Basic Installation** (Production):
+
+   ```bash
+   pip install -r requirements.txt -r requirements-base.txt
+   ```
+
+2. **Development Setup** (includes testing tools):
+
+   ```bash
+   pip install -r requirements.txt -r requirements-base.txt -r requirements-dev.txt
+   ```
+
+3. **Windows Development** (includes Windows-specific packages):
+   ```bash
+   pip install -r requirements.txt -r requirements-base.txt -r requirements-windows.txt
+   ```
+
+### Application Deployment (Render.com)
 
 1. Fork this repository to your GitHub account
 2. Create a new Web Service on [Render.com](https://render.com)
 3. Connect your GitHub repository
-4. Use the following settings:
-   - Build Command: `pip install -r requirements.txt`
-   - Start Command: `streamlit run app.py`
+4. The deployment configuration is already set up in `render.yaml`
 5. Set up your environment variables in the Render dashboarder Pro - Enterprise Multi-User Platform
 
 A comprehensive resume customization platform with advanced multi-user features, smart email automation, team collaboration, and high-performance architecture supporting 50+ concur└── 📁 resume_customizer/ # Core resume customization logic
@@ -125,17 +149,30 @@ streamlit run app.py
 - **Railway**: Deploy directly from GitHub
 - **Heroku**: One-click deploy with Heroku button
 
-## 📋 Requirements
+## � Installation & Setup
 
-- Python 3.9+
-- Core dependencies in `requirements.txt`
-- Google Drive integration dependencies in `requirements-gdrive.txt` (optional)
-- Key dependencies:
-  - streamlit>=1.28.0
-  - python-docx>=0.8.11
-  - mammoth>=1.6.0 (for preview)
-  - psycopg2-binary (for PostgreSQL)
-  - SQLAlchemy (for database ORM)
+### Requirements
+
+- Python 3.13+
+- PostgreSQL 15+
+- Redis (optional, for task queue)
+
+### Installation Options
+
+1. **Basic Installation** (Production):
+   ```bash
+   pip install -r requirements.txt -r requirements-base.txt
+   ```
+
+2. **Development Setup**:
+   ```bash
+   pip install -r requirements.txt -r requirements-base.txt -r requirements-dev.txt
+   ```
+
+3. **Windows Development**:
+   ```bash
+   pip install -r requirements.txt -r requirements-base.txt -r requirements-windows.txt
+   ```
 
 ## 🔧 Usage
 
@@ -206,18 +243,40 @@ AWS: • Deployed applications using EC2 and S3 • Managed databases with RDS
 
 ## 📁 Project Structure
 
-## 🏗️ Project Structure
+## 📁 Project Structure
 
 ```
 injector/
-├── app.py                          # Main Streamlit application
-├── config.py                       # Configuration module
-├── requirements.txt                # Python dependencies
-├── README.md                       # This documentation
-├── Dockerfile                      # Docker configuration
-├── tasks.py                        # Celery task definitions
-├──
-├── 📁 config/                      # Configuration files
+├── app.py                  # Main Streamlit application
+├── config.py              # Configuration module
+├── requirements.txt       # Main requirements file
+├── requirements-base.txt  # Core dependencies
+├── requirements-dev.txt   # Development tools
+├── requirements-windows.txt # Windows-specific packages
+│
+├── 📁 core/              # Core application logic
+│   ├── config.py         # Core configuration
+│   ├── constants.py      # Global constants
+│   ├── errors.py         # Error definitions
+│   └── types.py         # Type definitions
+│
+├── 📁 database/          # Database components
+│   ├── adaptive_pool.py  # Connection pooling
+│   ├── encryption.py     # Data encryption
+│   ├── session.py       # Session management
+│   ├── models/          # Database models
+│   └── repository/      # Data access layer
+│
+├── 📁 resume_customizer/ # Core resume logic
+│   ├── analyzers/       # Analysis modules
+│   ├── parsers/         # Document parsing
+│   ├── processors/      # Processing logic
+│   └── formatters/      # Output formatting
+│
+├── 📁 pages/            # Streamlit pages
+├── 📁 scripts/          # Utility scripts
+├── 📁 tests/            # Test suite
+└── 📁 docs/             # Documentation
 │   ├── celeryconfig.py             # Celery configuration
 │   ├── docker-compose.prod.yml     # Production Docker setup
 │   ├── pytest.ini                 # Test configuration
