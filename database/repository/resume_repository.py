@@ -5,8 +5,8 @@ Resume repository implementation for data access layer
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, asc
-from database.repository.base import BaseRepository
-from database.models import ResumeDocument
+from .base import BaseRepository
+from ..models.resume_models import ResumeDocument
 
 class ResumeRepository(BaseRepository[ResumeDocument]):
     """Repository for Resume document operations"""

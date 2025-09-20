@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional, List
 import docx
 from datetime import datetime
 
-from database.format_models import ResumeFormat, ResumeFormatMatch
+from database.models import ResumeFormat
 from resume_customizer.analyzers.format_analyzer import FormatAnalyzer
 from infrastructure.utilities.logger import get_logger
 

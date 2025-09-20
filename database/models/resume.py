@@ -4,18 +4,18 @@ Models for storing resume data, customizations, and processing history
 """
 
 from sqlalchemy import (
-    Column, Integer, String, Text, DateTime, Boolean, JSON, 
-    ForeignKey, Index, UniqueConstraint, CheckConstraint, Float
+    Column, Integer, String, Text, DateTime, Boolean, 
+    ForeignKey, Index, CheckConstraint, Float, text
 )
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 from datetime import datetime
 import uuid
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 
-from .models import BaseModel, Base
+from ..base import BaseModel
+
 
 class ResumeDocument(BaseModel):
     """
@@ -78,6 +78,7 @@ class ResumeDocument(BaseModel):
             'processing_completed_at': self.processing_completed_at.isoformat() if self.processing_completed_at else None,
             'customization_count': len(self.customizations) if self.customizations else 0
         }
+
 
 class ResumeCustomization(BaseModel):
     """
@@ -156,6 +157,7 @@ class ResumeCustomization(BaseModel):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
 
+
 class EmailSend(BaseModel):
     """
     Table for tracking email sends and delivery status
@@ -216,6 +218,7 @@ class EmailSend(BaseModel):
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
+
 class ProcessingLog(BaseModel):
     """
     Detailed logging table for tracking processing steps and performance
@@ -256,6 +259,7 @@ class ProcessingLog(BaseModel):
         Index('idx_log_step', step_name, 'created_at'),
     )
 
+
 class UserSession(BaseModel):
     """
     Table for tracking user sessions and activity
@@ -280,6 +284,9 @@ class UserSession(BaseModel):
     # Status
     is_active = Column(Boolean, default=True, index=True)
     ended_at = Column(DateTime(timezone=True))
+
+    # Schema drift compatibility: add version column with default to satisfy NOT NULL constraints
+    version = Column(Integer, nullable=False, server_default=text('1'), default=1)
     
     # Constraints and indexes
     __table_args__ = (
@@ -287,15 +294,15 @@ class UserSession(BaseModel):
         Index('idx_session_activity', 'last_activity'),
     )
 
+
 # Performance Analytics Views
-class ResumeAnalytics(Base):
+class ResumeAnalytics(BaseModel):
     """
     Materialized view for resume processing analytics
     """
     __tablename__ = 'resume_analytics_view'
     __table_args__ = {'info': {'is_view': True}}
     
-    id = Column(UUID(as_uuid=True), primary_key=True)
     date = Column(DateTime(timezone=True))
     total_resumes = Column(Integer)
     total_customizations = Column(Integer)
@@ -305,3 +312,13 @@ class ResumeAnalytics(Base):
     success_rate = Column(Float)
     popular_tech_stacks = Column(JSONB)
     top_companies = Column(JSONB)
+
+
+__all__ = [
+    'ResumeDocument',
+    'ResumeCustomization', 
+    'EmailSend',
+    'ProcessingLog',
+    'UserSession',
+    'ResumeAnalytics'
+]

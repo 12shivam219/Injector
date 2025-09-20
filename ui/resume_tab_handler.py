@@ -70,7 +70,7 @@ class ResumeTabHandler:
                     try:
                         Session = services.get('db_session')
                         session = Session()
-                        from database.format_models import ResumeFormat
+                        from database.models import ResumeFormat
                         stored_formats = session.query(ResumeFormat).all()
                         session.close()
                     except Exception:

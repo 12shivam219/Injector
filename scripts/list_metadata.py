@@ -3,12 +3,10 @@ sys.path.insert(0, os.getcwd())
 from database.base import Base
 
 modules = [
-    'database.models',
-    'database.base_model',
-    'database.user_models',
-    'database.resume_models',
-    'database.format_models',
-    'database.rbac',
+    'database.models.user',
+    'database.models.resume', 
+    'database.models.requirements',
+    'database.models.format',
 ]
 print('Importing modules:')
 for m in modules:

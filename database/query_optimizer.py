@@ -9,9 +9,9 @@ from sqlalchemy.orm import Session, Query, joinedload, contains_eager, selectinl
 from sqlalchemy.sql.expression import literal_column
 from sqlalchemy.dialects.postgresql import array, ARRAY
 
-from database.models import Base
-from database.resume_models import ResumeDocument, ResumeCustomization
-from database.read_write_manager import get_read_session, get_write_session
+from .base import Base
+from .models import ResumeDocument, ResumeCustomization
+from .utils.read_write_manager import get_read_session, get_write_session
 from infrastructure.monitoring.advanced_cache import cached, CacheLevel
 from infrastructure.utilities.logger import get_logger
 

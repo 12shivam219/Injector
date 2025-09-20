@@ -27,7 +27,6 @@ The application supports different environments through these variables:
 
 - `ENVIRONMENT`: Set to 'development' or 'production'
 - `DATABASE_URL`: Main database connection string
-- `USE_SQLITE_FALLBACK`: Set to 'true' to use SQLite in development
 - `DB_ENCRYPTION_KEY`: Database encryption key
 - `USER_DATA_ENCRYPTION_KEY`: User data encryption key
 

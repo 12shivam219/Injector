@@ -1,5 +1,5 @@
 """
-Database Models for Resume Customizer Application
+Database Models for Requirements Management
 Comprehensive PostgreSQL models with high performance and scalability features
 """
 
@@ -7,23 +7,15 @@ from sqlalchemy import (
     Column, Integer, String, Text, DateTime, Boolean, JSON, 
     ForeignKey, Index, UniqueConstraint, CheckConstraint, Float, BigInteger
 )
-from .base import Base
-from sqlalchemy.orm import relationship, sessionmaker
-from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
+from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 from datetime import datetime
 import uuid
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 
-class BaseModel(Base):
-    """Base model with common fields for all tables"""
-    __abstract__ = True
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False, index=True)
-    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False, index=True)
-    is_active = Column(Boolean, default=True, nullable=False, index=True)
-    version = Column(Integer, default=1, nullable=False)  # For optimistic locking
+from ..base import BaseModel
+
 
 class Requirement(BaseModel):
     """
@@ -184,9 +176,10 @@ class Requirement(BaseModel):
             'interview_id': self.interview_id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'version': self.version,
-            'is_active': self.is_active
+            'version': getattr(self, 'version', 1),
+            'is_active': getattr(self, 'is_active', True)
         }
+
 
 class RequirementComment(BaseModel):
     """
@@ -218,6 +211,7 @@ class RequirementComment(BaseModel):
             'comment_type': self.comment_type
         }
 
+
 class RequirementConsultant(BaseModel):
     """
     Many-to-many relationship between requirements and consultants
@@ -246,6 +240,7 @@ class RequirementConsultant(BaseModel):
             'priority': self.priority
         }
 
+
 class DatabaseStats(BaseModel):
     """
     Table for tracking database statistics and performance metrics
@@ -260,6 +255,7 @@ class DatabaseStats(BaseModel):
     __table_args__ = (
         Index('idx_stats_category', category),
     )
+
 
 class AuditLog(BaseModel):
     """
@@ -283,8 +279,9 @@ class AuditLog(BaseModel):
         Index('idx_audit_record', record_id, table_name),
     )
 
+
 # Performance optimization: Create materialized view for common queries
-class RequirementSummaryView(Base):
+class RequirementSummaryView(BaseModel):
     """
     Materialized view for high-performance requirement summaries
     This will be created as an actual materialized view in PostgreSQL
@@ -292,7 +289,6 @@ class RequirementSummaryView(Base):
     __tablename__ = 'requirement_summary_view'
     __table_args__ = {'info': {'is_view': True}}
     
-    id = Column(UUID(as_uuid=True), primary_key=True)
     req_status = Column(String(50))
     applied_for = Column(String(100))
     client_company = Column(String(255))
@@ -301,9 +297,15 @@ class RequirementSummaryView(Base):
     tech_stack_count = Column(Integer)
     comment_count = Column(Integer)
     consultant_count = Column(Integer)
-    created_at = Column(DateTime(timezone=True))
-    updated_at = Column(DateTime(timezone=True))
     days_since_created = Column(Integer)
     status_priority = Column(Integer)  # For sorting by status importance
 
 
+__all__ = [
+    'Requirement',
+    'RequirementComment',
+    'RequirementConsultant',
+    'DatabaseStats',
+    'AuditLog',
+    'RequirementSummaryView'
+]

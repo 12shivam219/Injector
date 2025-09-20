@@ -3,16 +3,21 @@ User models for Resume Customizer application.
 Provides database models for user authentication and management.
 """
 
-from sqlalchemy import Column, String, Boolean, DateTime, Integer, ForeignKey, Enum, func, Index, CheckConstraint
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
-import uuid
-import enum
+from sqlalchemy import Column, String, Boolean, DateTime, Index
+from sqlalchemy.dialects.postgresql import JSONB
 from datetime import datetime
 
-from database.base_model import BaseModel
-from database.custom_types import EncryptedBinaryString
+from ..base import BaseModel
+
+# Optional encryption import
+try:
+    from ..utils.custom_types import EncryptedBinaryString
+    ENCRYPTION_AVAILABLE = True
+except ImportError:
+    from sqlalchemy import LargeBinary
+    EncryptedBinaryString = LargeBinary  # Fallback to regular binary
+    ENCRYPTION_AVAILABLE = False
+
 
 class User(BaseModel):
     """User model for authentication and user management."""
@@ -49,3 +54,6 @@ class User(BaseModel):
     
     def __repr__(self):
         return f"<User(username='{self.username}', email='{self.email}')>"
+
+
+__all__ = ['User']

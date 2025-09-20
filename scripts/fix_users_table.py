@@ -36,8 +36,7 @@ def fix_users_table():
             logger.info("Users table dropped successfully")
         
         # Import models after dropping table to avoid any import-time table creation
-        from database.base_model import Base
-        from database.user_models import User
+        from database.models import Base, User
         
         # Create table with new schema
         logger.info("Creating users table with new schema...")

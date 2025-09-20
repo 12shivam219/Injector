@@ -11,10 +11,10 @@ from sqlalchemy.orm import sessionmaker
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import all models to ensure they are registered with Base
-from database.base_model import Base
-from database.user_models import User
-from database.resume_models import ResumeDocument
-from database.models import Requirement, RequirementComment, RequirementConsultant
+from database.models import (
+    Base, User, ResumeDocument, Requirement, 
+    RequirementComment, RequirementConsultant
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -1,7 +1,6 @@
 # 🎯 Resum## 📊 Database Features
 
 - **PostgreSQL Support**: Primary database with Neon.tech integration
-- **SQLite Fallback**: Development environment support
 - **Connection Pooling**: Optimized for cloud deployment
 - **Query Monitoring**: Performance tracking and optimization
 - **Migration System**: Automated schema management

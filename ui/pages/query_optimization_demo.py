@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 from typing import Dict, List, Any
 
 from database.query_optimizer import get_query_optimizer
-from database.resume_models import ResumeDocument
-from database.read_write_manager import get_read_session
+from database.models import ResumeDocument, ResumeCustomization
+from database.archive.read_write_manager import get_read_session
 from infrastructure.monitoring.metrics import get_metrics_manager
 from infrastructure.utilities.logger import get_logger
 

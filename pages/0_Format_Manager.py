@@ -9,7 +9,7 @@ import docx
 from datetime import datetime
 
 from resume_customizer.analyzers.format_analyzer import FormatAnalyzer
-from database.format_models import ResumeFormat, ResumeFormatMatch
+from database.models import ResumeFormat, ResumeFormatMatch
 from infrastructure.storage.local_format_store import LocalFormatStore
 from infrastructure.utilities.logger import get_logger
 

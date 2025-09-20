@@ -13,7 +13,7 @@ import hashlib
 from infrastructure.utilities.logger import get_logger
 from utilities.fuzzy_matcher import FuzzyMatcher
 from database.models import BaseModel
-from database.format_models import ResumeFormat, ResumeFormatMatch, FormatElement
+from database.models import ResumeFormat, ResumeFormatMatch
 
 logger = get_logger()
 

@@ -9,7 +9,7 @@ services:
     envVars:
       - key: ENVIRONMENT
         value: production
-      - key: USE_SQLITE_FALLBACK
+  # ...existing code...
         value: false
       - key: DEBUG
         value: false

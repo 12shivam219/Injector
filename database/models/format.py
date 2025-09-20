@@ -5,13 +5,14 @@ Database models for resume format patterns and analysis
 from sqlalchemy import Column, Integer, String, JSON, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from .models import Base, BaseModel
+
+from ..base import BaseModel
+
 
 class ResumeFormat(BaseModel):
     """Stores resume format templates and their patterns"""
     __tablename__ = 'resume_formats'
 
-    id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False, unique=True)
     description = Column(String(1000))
     
@@ -38,11 +39,11 @@ class ResumeFormat(BaseModel):
     def __repr__(self):
         return f"<ResumeFormat(name='{self.name}', matches={self.match_count})>"
 
+
 class ResumeFormatMatch(BaseModel):
     """Records which resumes matched which formats"""
     __tablename__ = 'resume_format_matches'
 
-    id = Column(Integer, primary_key=True)
     format_id = Column(Integer, ForeignKey('resume_formats.id'))
     resume_hash = Column(String(64), nullable=False)  # Hash of the resume content
     match_score = Column(Integer)  # Score out of 100
@@ -55,13 +56,13 @@ class ResumeFormatMatch(BaseModel):
     format = relationship("ResumeFormat", back_populates="matches")
 
     def __repr__(self):
-        return f"<ResumeFormatMatch(format='{self.format.name}', score={self.match_score})>"
+        return f"<ResumeFormatMatch(format='{self.format.name if self.format else 'Unknown'}', score={self.match_score})>"
+
 
 class FormatElement(BaseModel):
     """Stores individual elements found in resume formats"""
     __tablename__ = 'format_elements'
 
-    id = Column(Integer, primary_key=True)
     format_id = Column(Integer, ForeignKey('resume_formats.id'))
     element_type = Column(String(50))  # 'company', 'title', 'section', etc.
     element_value = Column(String(255))  # The actual text found
@@ -75,3 +76,10 @@ class FormatElement(BaseModel):
     
     def __repr__(self):
         return f"<FormatElement(type='{self.element_type}', value='{self.element_value}')>"
+
+
+__all__ = [
+    'ResumeFormat',
+    'ResumeFormatMatch', 
+    'FormatElement'
+]

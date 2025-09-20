@@ -158,6 +158,21 @@ def get_cached_services() -> Dict[str, Any]:
         if initialized:
             services['db_session'] = db_manager.SessionLocal
             logging.info("Database connection initialized successfully")
+
+            # Run Alembic migrations automatically (recommended for Neon deployments)
+            try:
+                auto_run = os.getenv('AUTO_RUN_MIGRATIONS', 'true').lower() == 'true'
+                if auto_run:
+                    from infrastructure.db.migrations import run_alembic_migrations
+                    conn_str = connection_string or os.getenv('DATABASE_URL')
+                    migrate_ok = run_alembic_migrations(conn_str)
+                    if not migrate_ok:
+                        logging.warning('Alembic migrations did not run successfully')
+                else:
+                    logging.info('AUTO_RUN_MIGRATIONS disabled; skipping alembic migrations at startup')
+            except Exception as migr_exc:
+                logging.warning(f'Error while attempting migrations: {migr_exc}')
+
         else:
             services['db_session'] = None
             logging.error(
@@ -259,6 +274,29 @@ def get_cached_services() -> Dict[str, Any]:
         logging.warning(f"Could not load application guide: {e}")
     
     return services
+
+
+def perform_startup_health_check(services: Dict[str, Any]) -> bool:
+    """Simple startup health check that verifies DB connectivity.
+
+    Returns True when the app can proceed, False to indicate failure.
+    """
+    logger = logging.getLogger(__name__)
+    db_ok = False
+    try:
+        db_session = services.get('db_session')
+        if db_session:
+            # Try a quick SELECT 1
+            from sqlalchemy import text
+            with db_session() as session:
+                session.execute(text('SELECT 1'))
+            db_ok = True
+    except Exception as e:
+        logger.error(f"Startup DB health check failed: {e}")
+
+    if not db_ok:
+        logger.error("Database health check failed at startup")
+    return db_ok
 
 @st.cache_resource
 def get_cached_logger():

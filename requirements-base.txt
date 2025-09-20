@@ -1,0 +1,55 @@
+# Resume Customizer Pro - Core Dependencies
+# Python 3.13+ Required
+# Generated on 2025-09-20
+
+# Core Web Framework
+streamlit>=1.49.0    # Supports Python 3.13
+
+# Document Processing
+python-docx>=1.2.0   # Document processing
+mammoth>=1.10.0      # DOCX to HTML conversion
+PyPDF2>=3.0.0        # PDF processing
+python-multipart>=0.0.20
+
+# Database Dependencies
+sqlalchemy>=2.0.40   # Modern SQLAlchemy with async support
+psycopg2-binary>=2.9.9
+alembic>=1.16.0
+sqlalchemy-utils>=0.42.0
+
+# Distributed Task Queue
+celery>=5.5.0
+redis>=6.0.0
+
+# Data Processing
+pandas>=2.3.0        # Requires Python 3.9+
+numpy>=2.3.0         # Requires Python 3.9+
+rapidfuzz>=3.14.0    # Fuzzy string matching
+matplotlib>=3.10.0
+altair>=5.5.0
+pillow>=11.0.0
+
+# Security & Authentication
+cryptography>=45.0.0
+python-jose[cryptography]>=3.5.0
+passlib[bcrypt]>=1.7.4
+
+# System & Performance
+psutil>=7.0.0
+python-dateutil>=2.9.0
+pytz>=2025.2
+
+# Logging & Monitoring
+concurrent-log-handler>=0.9.28
+structlog>=25.4.0
+tqdm>=4.65.0
+colorama>=0.4.6
+
+# Configuration Management
+python-dotenv>=1.0.0
+
+# Email & Communication
+yagmail>=0.15.293
+
+# Additional Document Support
+python-pptx>=1.0.0

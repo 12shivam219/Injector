@@ -96,7 +96,7 @@ requirements.json
 # Database files
 *.db
 *.sqlite
-*.sqlite3
+# ...existing code...
 
 # SSL certificates
 ssl/

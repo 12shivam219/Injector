@@ -22,15 +22,15 @@ class AdaptivePoolManager:
     """
     
     def __init__(
-        self, 
+        self,
         engine: Engine,
-        min_pool_size: int = 5,
-        max_pool_size: int = 30,
-        target_utilization: float = 0.7,
-        scale_up_threshold: float = 0.8,
-        scale_down_threshold: float = 0.3,
-        check_interval_seconds: int = 30,
-        cooldown_seconds: int = 60
+        min_pool_size: int = None,
+        max_pool_size: int = None,
+        target_utilization: float = None,
+        scale_up_threshold: float = None,
+        scale_down_threshold: float = None,
+        check_interval_seconds: int = None,
+        cooldown_seconds: int = None
     ):
         """
         Initialize adaptive pool manager
@@ -45,14 +45,15 @@ class AdaptivePoolManager:
             check_interval_seconds: Seconds between pool size checks
             cooldown_seconds: Seconds to wait after scaling before next adjustment
         """
+        import os
         self.engine = engine
-        self.min_pool_size = min_pool_size
-        self.max_pool_size = max_pool_size
-        self.target_utilization = target_utilization
-        self.scale_up_threshold = scale_up_threshold
-        self.scale_down_threshold = scale_down_threshold
-        self.check_interval = check_interval_seconds
-        self.cooldown_seconds = cooldown_seconds
+        self.min_pool_size = min_pool_size or int(os.getenv('DB_POOL_MIN', 5))
+        self.max_pool_size = max_pool_size or int(os.getenv('DB_POOL_MAX', 30))
+        self.target_utilization = target_utilization or float(os.getenv('DB_POOL_TARGET_UTIL', 0.7))
+        self.scale_up_threshold = scale_up_threshold or float(os.getenv('DB_POOL_SCALE_UP', 0.8))
+        self.scale_down_threshold = scale_down_threshold or float(os.getenv('DB_POOL_SCALE_DOWN', 0.3))
+        self.check_interval = check_interval_seconds or int(os.getenv('DB_POOL_CHECK_INTERVAL', 30))
+        self.cooldown_seconds = cooldown_seconds or int(os.getenv('DB_POOL_COOLDOWN', 60))
         
         # Internal state
         self.current_pool_size = min_pool_size
@@ -203,13 +204,17 @@ class AdaptivePoolManager:
         )
     
     def get_stats(self) -> Dict[str, Any]:
-        """Get adaptive pool statistics"""
+        """Get adaptive pool statistics (for monitoring)"""
         stats = self.stats.copy()
         stats.update({
             "current_pool_size": self.current_pool_size,
             "min_pool_size": self.min_pool_size,
             "max_pool_size": self.max_pool_size,
             "target_utilization": self.target_utilization,
+            "scale_up_threshold": self.scale_up_threshold,
+            "scale_down_threshold": self.scale_down_threshold,
+            "check_interval": self.check_interval,
+            "cooldown_seconds": self.cooldown_seconds,
         })
         return stats
 

@@ -52,7 +52,7 @@ PARSING_CONFIG = {
     "tech_stack_patterns": [
         r'\b(?:Python|Java|JavaScript|TypeScript|C\+\+|C#|Go|Rust|Ruby|PHP|Swift|Kotlin)\b',
         r'\b(?:React|Angular|Vue|Django|Flask|Spring|Express|Laravel|Rails)\b',
-        r'\b(?:MySQL|PostgreSQL|MongoDB|Redis|Elasticsearch|SQLite)\b',
+    r'\b(?:MySQL|PostgreSQL|MongoDB|Redis|Elasticsearch)\b',
         r'\b(?:AWS|Azure|GCP|Docker|Kubernetes|Jenkins|Git|Linux)\b'
     ]
 }

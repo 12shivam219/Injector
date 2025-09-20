@@ -1,0 +1,24 @@
+# Resume Customizer Pro - Development Dependencies
+# Python 3.13+ Required
+# Generated on 2025-09-20
+
+# Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-mock>=3.12.0
+
+# Code Quality
+black>=23.0.0        # Code formatting
+flake8>=6.0.0        # Linting
+mypy>=1.7.0          # Type checking
+isort>=5.12.0        # Import sorting
+
+# Development Tools
+ipython>=8.18.0      # Enhanced Python REPL
+jupyter>=1.0.0       # Notebook support
+pre-commit>=3.5.0    # Git hooks
+
+# Documentation
+sphinx>=7.2.0        # Documentation generator
+sphinx-rtd-theme>=2.0.0  # Documentation theme

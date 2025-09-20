@@ -13,7 +13,7 @@ from typing import Dict, Any, Optional, Tuple
 from infrastructure.utilities.logger import get_logger
 from infrastructure.monitoring.audit_logger import audit_logger
 from infrastructure.security.security_enhancements import SecurePasswordManager
-from database.resume_models import UserSession
+from database.models import User
 from database.connection import get_db_session
 
 logger = get_logger()
@@ -52,7 +52,7 @@ class AuthenticationManager:
         try:
             # Check if username already exists
             with get_db_session() as session:
-                from database.user_models import User
+                from database.models import User
                 existing_user = session.query(User).filter_by(username=username).first()
                 if existing_user:
                     return False, "Username already exists"
@@ -96,7 +96,7 @@ class AuthenticationManager:
         """
         try:
             with get_db_session() as session:
-                from database.user_models import User
+                from database.models import User, UserSession
                 user = session.query(User).filter_by(username=username, is_active=True).first()
                 
                 if not user:
@@ -151,7 +151,10 @@ class AuthenticationManager:
                 
                 return True, "Login successful"
         except Exception as e:
-            logger.error(f"Login error: {str(e)}")
+            # If this is a connection error, provide a clearer message for UI
+            logger.error("Login error encountered", exception=e)
+            if 'Database not initialized' in str(e) or 'not initialized' in str(e).lower():
+                return False, "Login failed: Database not available. Please check database configuration."
             return False, f"Login failed: {str(e)}"
     
     def logout(self):
@@ -164,6 +167,8 @@ class AuthenticationManager:
             # Update session in database
             if session_id:
                 with get_db_session() as session:
+                    # Ensure UserSession is available in this scope
+                    from database.models import UserSession
                     user_session = session.query(UserSession).filter_by(session_id=session_id).first()
                     if user_session:
                         user_session.is_active = False

@@ -1,0 +1,7 @@
+# Resume Customizer Pro - Windows-specific Dependencies
+# Python 3.13+ Required
+# Generated on 2025-09-20
+
+# Windows System Integration
+pywin32>=306        # Windows API access
+winreg>=0.10.0     # Windows registry access

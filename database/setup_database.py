@@ -15,7 +15,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database.config import get_connection_string, setup_database_environment
 from database.connection import initialize_database
 from database.models import Base, Requirement, RequirementComment, RequirementConsultant
-from database.resume_models import (
+from database.models import (
     ResumeDocument, ResumeCustomization, EmailSend, 
     ProcessingLog, UserSession
 )
@@ -39,7 +39,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database.config import get_connection_string, setup_database_environment
 from database.connection import initialize_database
 from database.models import Base
-from database.resume_models import (
+from database.models import (
     ResumeDocument, ResumeCustomization, EmailSend,
     ProcessingLog, UserSession
 )

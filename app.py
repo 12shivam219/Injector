@@ -34,14 +34,21 @@ def main():
     
     # Initialize the application
     initialize_app()
+
+    # Perform a startup health check (database availability, etc.) and fail fast
+    from infrastructure.app.app_bootstrap import perform_startup_health_check, get_cached_services
+    services = get_cached_services()
+    if not perform_startup_health_check(services):
+        st.error("Critical: Database health check failed on startup. Check your DATABASE_URL and database accessibility.")
+        st.stop()
     
     # Welcome page content
     st.title("📝 Resume Customizer")
     st.markdown(f"### 🎯 **Welcome to Resume Customizer v{APP_CONFIG['version']}**")
     
     # Check if formats exist
-    from database.format_models import ResumeFormat
-    from database.session_utils import get_session
+    from database.models import ResumeFormat
+    from database.session import get_session
     
     try:
         with get_session() as session:

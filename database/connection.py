@@ -9,7 +9,7 @@ import logging
 from contextlib import contextmanager
 from typing import Optional, Dict, Any, Generator
 from urllib.parse import quote_plus
-from database.config import get_connection_string, get_engine_config
+from .config import get_connection_string, get_engine_config
 import threading
 
 from sqlalchemy import create_engine, event, pool, text
@@ -22,7 +22,7 @@ from psycopg2 import OperationalError as PsycopgOperationalError
 
 # Import with fallback for missing modules
 try:
-    from database.error_handler import handle_db_errors, with_retry, ConnectionError
+    from .utils.error_handler import handle_db_errors, with_retry, ConnectionError
 except ImportError:
     def handle_db_errors(func):
         return func
@@ -34,13 +34,13 @@ except ImportError:
         pass
 
 try:
-    from database.query_monitor import setup_query_monitoring
+    from .utils.monitoring import setup_query_monitoring
 except ImportError:
     def setup_query_monitoring(engine, slow_query_threshold_ms=100):
         pass
 
 try:
-    from database.adaptive_pool import setup_adaptive_pooling
+    from .utils.pooling import setup_adaptive_pooling
 except ImportError:
     def setup_adaptive_pooling(engine, min_pool_size=5, max_pool_size=30):
         return None
@@ -59,21 +59,7 @@ class DatabaseConnectionManager:
     - Thread-safe operations
     """
     
-    @contextmanager
-    def get_session(self) -> Generator[Session, None, None]:
-        """Get a database session using context manager"""
-        if not self._is_connected:
-            raise ConnectionError("Database not initialized. Call initialize() first.")
-        
-        session = self.SessionLocal()
-        try:
-            yield session
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
+    # Session context manager is defined later to ensure SessionLocal is available
     
     _instance = None
     _lock = threading.Lock()
@@ -119,112 +105,60 @@ class DatabaseConnectionManager:
         """
         try:
             if not database_url:
-                # Use centralized DatabaseConfig to build connection string
-                database_url = get_connection_string()
+                # Prefer Neon DATABASE_URL from environment
+                database_url = os.getenv('DATABASE_URL') or get_connection_string()
             
             # Avoid printing full connection URL (may contain secrets)
             logger.info("Attempting to initialize database engine (connection details masked)")
             self._connection_string = database_url
             
-            # Load centralized engine configuration and allow overrides via kwargs
+            # Centralized engine configuration for scalability
             engine_config = get_engine_config() or {}
-            # Allow overriding via env for SQL echo
+            # Neon-specific optimizations
+            if 'neon.tech' in (database_url or ''):
+                engine_config['pool_size'] = int(os.getenv('DB_POOL_SIZE', 5))
+                engine_config['max_overflow'] = int(os.getenv('DB_MAX_OVERFLOW', 10))
+                engine_config['pool_timeout'] = int(os.getenv('DB_POOL_TIMEOUT', 15))
+            else:
+                engine_config['pool_size'] = int(os.getenv('DB_POOL_SIZE', engine_config.get('pool_size', 20)))
+                engine_config['max_overflow'] = int(os.getenv('DB_MAX_OVERFLOW', engine_config.get('max_overflow', 40)))
+                engine_config['pool_timeout'] = int(os.getenv('DB_POOL_TIMEOUT', engine_config.get('pool_timeout', 30)))
             engine_config['echo'] = os.getenv('DB_ECHO', 'false').lower() == 'true'
-            # Merge any explicit kwargs into engine_config (kwargs take precedence)
             engine_config.update(kwargs)
-            
+
             # Create engine with optimizations
             self.engine = create_engine(database_url, **engine_config)
-            
+
             # Set up query monitoring
             setup_query_monitoring(self.engine, slow_query_threshold_ms=100)
-            
+
             # Set up adaptive connection pooling using centralized pool config
-            min_pool = int(engine_config.get('pool_size', 5))
-            max_pool = int(min_pool + int(engine_config.get('max_overflow', 10)))
-            self.pool_manager = setup_adaptive_pooling(
-                self.engine,
-                min_pool_size=min_pool,
-                max_pool_size=max_pool
-            )
-            
+            min_pool = int(engine_config['pool_size'])
+            max_pool = int(min_pool + int(engine_config['max_overflow']))
+            # setup_adaptive_pooling currently accepts (engine, min_pool_size, max_pool_size)
+            self.pool_manager = setup_adaptive_pooling(self.engine, min_pool, max_pool)
+
             # Configure session factory
-            # Use conservative session defaults: expire objects on commit to avoid stale state
             self.SessionLocal = sessionmaker(
                 autocommit=False,
                 autoflush=True,
                 bind=self.engine,
                 expire_on_commit=True
             )
-            
+
             # Add event listeners for monitoring
             self._setup_event_listeners()
-            
+
             # Test connection
             if self._test_connection():
                 self._is_connected = True
-                logger.info("✅ Database connection initialized successfully")
+                logger.info("✅ Database connection initialized successfully (Neon or cloud)")
                 return True
             else:
                 logger.error("❌ Failed to establish database connection")
                 return False
         except Exception as e:
             logger.error(f"❌ Database initialization failed: {e}")
-
-            # If running in development, fall back to a lightweight SQLite DB to keep development smooth
-            env_mode = os.getenv('ENV', os.getenv('ENVIRONMENT', 'development')).lower()
-            if env_mode in ('dev', 'development', ''):
-                try:
-                    sqlite_url = f"sqlite:///{os.getcwd().replace('\\', '/')}/dev_database.sqlite3"
-                    logger.warning(f"Falling back to local SQLite database for development: {sqlite_url}")
-                    # Minimal engine config for SQLite
-                    sqlite_engine = create_engine(sqlite_url, connect_args={})
-                    self.engine = sqlite_engine
-                    self.SessionLocal = sessionmaker(
-                        autocommit=False,
-                        autoflush=True,
-                        bind=self.engine,
-                        expire_on_commit=True
-                    )
-                    # Ensure schema exists if models are importable
-                    try:
-                        # Import all model modules first so their Table objects register
-                        # with the shared SQLAlchemy metadata during module import.
-                        import importlib
-                        model_modules = [
-                            'database.models',
-                            'database.base_model',
-                            'database.user_models',
-                            'database.resume_models',
-                            'database.format_models',
-                            'database.rbac',
-                        ]
-                        created = []
-                        for mod in model_modules:
-                            try:
-                                importlib.import_module(mod)
-                                created.append(mod)
-                            except Exception as e:
-                                logger.debug(f"Could not import {mod}: {e}")
-
-                        # Create tables from the shared Base metadata after imports
-                        try:
-                            from .base import Base as _shared_base
-                            _shared_base.metadata.create_all(bind=self.engine)
-                        except Exception as e:
-                            logger.debug(f"Failed to create_all on shared Base: {e}")
-
-                        if created:
-                            logger.info(f"Created or ensured tables for modules: {', '.join(created)}")
-                    except Exception:
-                        pass
-                    self._is_connected = True
-                    logger.info("✅ Development SQLite fallback initialized successfully")
-                    return True
-                except Exception as sqlite_exc:
-                    logger.error(f"❌ Development SQLite fallback failed: {sqlite_exc}")
-                    return False
-
             return False
     
     def create_database_if_not_exists(self) -> bool:
@@ -267,11 +201,22 @@ class DatabaseConnectionManager:
         """Initialize database schema with all tables"""
         try:
             from .models import Base
-            from .resume_models import ResumeDocument, ResumeCustomization, EmailSend
-            from .format_models import ResumeFormat, ResumeFormatMatch
+            from .models import ResumeDocument, ResumeCustomization, EmailSend
+            from .models import ResumeFormat, ResumeFormatMatch
             
+            # Determine engine to use for schema creation
+            use_temp_engine = False
+            target_engine = self.engine
+            if target_engine is None:
+                # Try to build an engine from the stored connection string
+                conn_str = self._connection_string or get_connection_string()
+                if not conn_str:
+                    raise RuntimeError("No connection string available to initialize schema")
+                target_engine = create_engine(conn_str)
+                use_temp_engine = True
+
             # Create all tables
-            Base.metadata.create_all(bind=self.engine)
+            Base.metadata.create_all(bind=target_engine)
             
             # Create indexes for better performance
             # Create additional performance indexes using autocommit (CONCURRENTLY requires no surrounding transaction)
@@ -282,7 +227,7 @@ class DatabaseConnectionManager:
             ]
 
             try:
-                with self.engine.connect().execution_options(isolation_level='AUTOCOMMIT') as conn:
+                with target_engine.connect().execution_options(isolation_level='AUTOCOMMIT') as conn:
                     for index_sql in indexes:
                         try:
                             conn.execute(text(index_sql))
@@ -290,8 +235,29 @@ class DatabaseConnectionManager:
                             logger.warning(f"Index creation skipped: {e}")
             except Exception as e:
                 logger.warning(f"Index creation phase skipped due to engine connection issue: {e}")
+
+            # Defensive fix: if migrations left out columns (schema drift), try to add commonly-missing columns
+            try:
+                with target_engine.connect().execution_options(isolation_level='AUTOCOMMIT') as conn:
+                    # Check for session_id column in user_sessions
+                    col_check = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'user_sessions' AND column_name = 'session_id'"))
+                    if not col_check.fetchone():
+                        logger.info("Adding missing column 'session_id' to user_sessions")
+                        try:
+                            conn.execute(text("ALTER TABLE user_sessions ADD COLUMN session_id VARCHAR(255)"))
+                            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_user_session_id ON user_sessions (session_id)"))
+                        except Exception as e:
+                            logger.warning(f"Could not add session_id column automatically: {e}")
+            except Exception as e:
+                logger.debug(f"Schema drift check skipped: {e}")
             
             logger.info("✅ Database schema initialized successfully")
+            # Dispose temporary engine if created
+            if use_temp_engine and target_engine is not None:
+                try:
+                    target_engine.dispose()
+                except Exception:
+                    pass
             return True
             
         except Exception as e:
@@ -541,6 +507,25 @@ def get_db_session():
     if not getattr(db_manager, '_is_connected', False):
         try:
             initialized = db_manager.initialize()
+            if not initialized:
+                # Try to create the database (if user provided a superuser URL)
+                try:
+                    logger.info("Attempting to create database if it does not exist...")
+                    if db_manager.create_database_if_not_exists():
+                        logger.info("Database creation attempted; retrying initialize...")
+                        initialized = db_manager.initialize()
+                except Exception as e_create:
+                    logger.warning(f"create_database_if_not_exists failed: {e_create}")
+
+            if not initialized:
+                # Try initializing the schema as a fallback
+                try:
+                    logger.info("Attempting to initialize schema as fallback...")
+                    if db_manager.initialize_schema():
+                        initialized = db_manager.initialize()
+                except Exception as e_schema:
+                    logger.warning(f"initialize_schema failed: {e_schema}")
+
             if not initialized:
                 raise ConnectionError(
                     "Database not initialized. Auto-initialize attempted but failed."

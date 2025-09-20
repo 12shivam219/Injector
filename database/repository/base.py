@@ -5,8 +5,8 @@ Base repository implementation for data access layer with read/write splitting
 from typing import TypeVar, Generic, Type, List, Optional, Any, Dict, Union
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from database.error_handler import handle_db_errors, with_retry
-from database.read_write_manager import get_read_session, get_write_session
+from ..utils.error_handler import handle_db_errors, with_retry
+from ..connection import get_session as get_read_session, get_session as get_write_session
 
 # Generic type for models
 T = TypeVar('T')

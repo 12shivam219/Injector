@@ -1,11 +1,10 @@
 """
-Database Package for Resume Customizer
-PostgreSQL database integration with high performance and scalability
+Database package initialization.
+Exports all database-related components for the Resume Customizer application.
 """
 
-# Import main components
+# Core database functionality
 from .connection import (
-    DatabaseConnectionManager,
     db_manager,
     get_db_session,
     initialize_database,
@@ -13,59 +12,69 @@ from .connection import (
     database_health_check
 )
 
-# Add get_connection_manager function
-def get_connection_manager():
-    """Return the database connection manager instance"""
-    return db_manager
+# Session management
+from .session import (
+    get_session,
+    get_db_session as get_session_context,
+    get_session_factory
+)
 
+# Read/write session management (if available)
+try:
+    from .utils.read_write_manager import (
+        get_read_session,
+        get_write_session
+    )
+    READ_WRITE_AVAILABLE = True
+except ImportError:
+    READ_WRITE_AVAILABLE = False
+    get_read_session = None
+    get_write_session = None
+
+# All models from the models package
 from .models import (
+    # Base classes
     Base,
+    BaseModel,
+    
+    # User models
+    User,
+    
+    # Resume models
+    ResumeDocument,
+    ResumeCustomization,
+    EmailSend,
+    ProcessingLog,
+    UserSession,
+    ResumeAnalytics,
+    
+    # Requirements models
     Requirement,
     RequirementComment,
     RequirementConsultant,
     DatabaseStats,
     AuditLog,
-    RequirementSummaryView
+    RequirementSummaryView,
+    
+    # Format models
+    ResumeFormat,
+    ResumeFormatMatch,
+    FormatElement
 )
 
-# Import query optimizer
-from .query_optimizer import (
-    QueryOptimizer,
-    get_query_optimizer
-)
-
-# Migrations module optional - only import if alembic is available
+# Query optimizer (if available)
 try:
-    from .migrations import (
-        DatabaseMigrator,
-        migrator,
-        initialize_database_schema,
-        refresh_database_views,
-        get_database_information,
-        perform_database_maintenance
+    from .query_optimizer import (
+        get_query_optimizer,
+        QueryOptimizer
     )
-    MIGRATIONS_AVAILABLE = True
+    QUERY_OPTIMIZER_AVAILABLE = True
 except ImportError:
-    MIGRATIONS_AVAILABLE = False
+    QUERY_OPTIMIZER_AVAILABLE = False
+    get_query_optimizer = None
+    QueryOptimizer = None
 
-# Optional import - requirements_manager_db might have dependencies
-try:
-    from .requirements_manager_db import PostgreSQLRequirementsManager
-    REQUIREMENTS_MANAGER_AVAILABLE = True
-except ImportError:
-    REQUIREMENTS_MANAGER_AVAILABLE = False
-
-# Optional import - migrate_from_json requires migrations which needs alembic
-try:
-    from .migrate_from_json import (
-        JSONToPostgreSQLMigrator,
-        run_migration,
-        run_dry_run
-    )
-    MIGRATION_TOOLS_AVAILABLE = True
-except ImportError:
-    MIGRATION_TOOLS_AVAILABLE = False
-
+# Configuration
 from .config import (
     DatabaseConfig,
     db_config,
@@ -78,21 +87,39 @@ from .config import (
     setup_database_environment
 )
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __author__ = "Resume Customizer Team"
 
-# Package metadata
+# Clean exports - only include what's actually available and commonly used
 __all__ = [
-    # Connection management
-    'DatabaseConnectionManager',
+    # Core database functionality
     'db_manager',
-    'get_db_session',
+    'get_db_session', 
     'initialize_database',
     'get_database_stats',
     'database_health_check',
     
-    # Models
+    # Session management
+    'get_session',
+    'get_session_context',
+    'get_session_factory',
+    
+    # Base classes
     'Base',
+    'BaseModel',
+    
+    # User models
+    'User',
+    
+    # Resume models
+    'ResumeDocument',
+    'ResumeCustomization',
+    'EmailSend',
+    'ProcessingLog',
+    'UserSession',
+    'ResumeAnalytics',
+    
+    # Requirements models
     'Requirement',
     'RequirementComment',
     'RequirementConsultant',
@@ -100,21 +127,10 @@ __all__ = [
     'AuditLog',
     'RequirementSummaryView',
     
-    # Migrations
-    'DatabaseMigrator',
-    'migrator',
-    'initialize_database_schema',
-    'refresh_database_views',
-    'get_database_information',
-    'perform_database_maintenance',
-    
-    # Requirements Manager
-    'PostgreSQLRequirementsManager',
-    
-    # JSON Migration
-    'JSONToPostgreSQLMigrator',
-    'run_migration',
-    'run_dry_run',
+    # Format models
+    'ResumeFormat',
+    'ResumeFormatMatch',
+    'FormatElement',
     
     # Configuration
     'DatabaseConfig',
@@ -127,5 +143,12 @@ __all__ = [
     'load_env_file',
     'setup_database_environment'
 ]
+
+# Conditionally add optional components
+if READ_WRITE_AVAILABLE:
+    __all__.extend(['get_read_session', 'get_write_session'])
+    
+if QUERY_OPTIMIZER_AVAILABLE:
+    __all__.extend(['get_query_optimizer', 'QueryOptimizer'])
 
 
