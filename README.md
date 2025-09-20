@@ -160,11 +160,13 @@ streamlit run app.py
 ### Installation Options
 
 1. **Basic Installation** (Production):
+
    ```bash
    pip install -r requirements.txt -r requirements-base.txt
    ```
 
 2. **Development Setup**:
+
    ```bash
    pip install -r requirements.txt -r requirements-base.txt -r requirements-dev.txt
    ```
