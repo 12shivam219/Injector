@@ -5,27 +5,20 @@ import sys
 from urllib.parse import quote
 
 def get_db_settings():
-    """Get database settings from .env"""
-    settings = {
-        'host': os.getenv('DB_HOST', 'localhost'),
-        'port': os.getenv('DB_PORT', '5432'),
-        'user': os.getenv('DB_USER', 'postgres'),
-        'password': os.getenv('DB_PASSWORD', ''),
-        'database': os.getenv('DB_NAME', 'resume_customizer')
-    }
-    return settings
+    """Get Neon database settings from environment"""
+    database_url = os.getenv('DATABASE_URL')
+    if not database_url:
+        print("ERROR: DATABASE_URL environment variable not set")
+        sys.exit(1)
+    return {'database_url': database_url}
 
 def test_psql_connection(settings):
-    """Test connection using psql with PGPASSWORD."""
-    os.environ['PGPASSWORD'] = settings['password']
+    """Test connection using psql with Neon connection URL."""
     try:
         cmd = [
             'psql',
-            '-h', settings['host'],
-            '-p', settings['port'],
-            '-U', settings['user'],
-            '-d', settings['database'],
-            '-c', 'SELECT current_user, inet_server_addr(), inet_server_port(), version();'
+            settings['database_url'],
+            '-c', 'SELECT current_user, version();'
         ]
         result = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
         print("Connection successful!")
@@ -42,24 +35,15 @@ def main():
     print("=" * 60)
     
     settings = get_db_settings()
-    masked = settings.copy()
-    if settings['password']:
-        masked['password'] = '***'
-    print("\nConnection settings (from .env):")
-    for k, v in masked.items():
-        print(f"- {k}: {v}")
-    
     print("\nTesting connection with psql...")
     success = test_psql_connection(settings)
     
     if not success:
         print("\nTroubleshooting steps:")
-        print("1. Check if password is correct")
-        print("2. Verify pg_hba.conf allows password authentication:")
-        print("   - Look for a line like: host all all 127.0.0.1/32 md5")
-        print("3. Try connecting with psql manually:")
-        print(f"   psql -h {settings['host']} -p {settings['port']} -U {settings['user']} -d {settings['database']}")
-        print("4. Check PostgreSQL logs for auth failure details")
+        print("1. Verify your Neon database URL is correct (copy from Neon dashboard)")
+        print("2. Ensure your IP/project can access Neon (if access controls are configured)")
+        print("3. Try connecting with psql manually using the same URL:")
+        print(f"   psql {settings['database_url']}")
 
 if __name__ == '__main__':
     main()

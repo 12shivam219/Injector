@@ -6,16 +6,11 @@ import streamlit as st
 
 def setup_streamlit_env():
     """Configure Streamlit environment variables for cloud deployment"""
-    # Set environment variables for database connection
-    if 'DATABASE_URL' in os.environ:
-        # Using provided DATABASE_URL from Streamlit Cloud
-        database_url = os.environ['DATABASE_URL']
-    else:
-        # Fallback to local configuration
-        database_url = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-    
-    # Set the database URL
-    os.environ['DATABASE_URL'] = database_url
+    # Prefer DATABASE_URL from environment; otherwise, try Streamlit secrets.
+    if 'DATABASE_URL' not in os.environ:
+        secret_url = st.secrets.get('DATABASE_URL', '')
+        if secret_url:
+            os.environ['DATABASE_URL'] = secret_url
     
     # Set encryption keys (these should be set in Streamlit Cloud Secrets)
     if 'DB_ENCRYPTION_KEY' not in os.environ:

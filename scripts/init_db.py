@@ -21,21 +21,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def get_connection_string():
-    """Get database connection string from environment variables"""
-    user = os.getenv('DB_USER', 'postgres')
-    password = os.getenv('DB_PASSWORD', 'admin')
-    host = os.getenv('DB_HOST', 'localhost')
-    port = os.getenv('DB_PORT', '5432')
-    dbname = os.getenv('DB_NAME', 'injector')
-    
-    return f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+    """Get database connection string from environment (DATABASE_URL)"""
+    url = os.getenv('DATABASE_URL')
+    if not url:
+        raise RuntimeError('DATABASE_URL environment variable is not set')
+    return url
 
 def setup_database():
     """Setup database tables"""
     try:
         # Get connection string
         connection_string = get_connection_string()
-        logger.info(f"Using connection string: postgresql://{os.getenv('DB_USER')}:***@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}")
+logger.info("Using DATABASE_URL from environment (masked)")
         
         # Create engine
         engine = create_engine(connection_string)

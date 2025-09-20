@@ -9,7 +9,7 @@ import logging
 from contextlib import contextmanager
 from typing import Optional, Dict, Any, Generator
 from urllib.parse import quote_plus
-from .config import get_connection_string, get_engine_config
+from .config import DatabaseConfig
 import threading
 
 from sqlalchemy import create_engine, event, pool, text
@@ -94,48 +94,35 @@ class DatabaseConnectionManager:
     
     def initialize(self, database_url: Optional[str] = None, **kwargs) -> bool:
         """
-        Initialize database connection with advanced configuration
+        Initialize Neon PostgreSQL database connection
         
         Args:
-            database_url: PostgreSQL connection string
+            database_url: Neon PostgreSQL connection string. If not provided, will be read from DATABASE_URL environment variable.
             **kwargs: Additional engine configuration options
             
         Returns:
             bool: True if initialization successful
         """
         try:
-            if not database_url:
-                # Prefer Neon DATABASE_URL from environment
-                database_url = os.getenv('DATABASE_URL') or get_connection_string()
-            
             # Avoid printing full connection URL (may contain secrets)
             logger.info("Attempting to initialize database engine (connection details masked)")
-            self._connection_string = database_url
             
-            # Centralized engine configuration for scalability
-            engine_config = get_engine_config() or {}
-            # Neon-specific optimizations
-            if 'neon.tech' in (database_url or ''):
-                engine_config['pool_size'] = int(os.getenv('DB_POOL_SIZE', 5))
-                engine_config['max_overflow'] = int(os.getenv('DB_MAX_OVERFLOW', 10))
-                engine_config['pool_timeout'] = int(os.getenv('DB_POOL_TIMEOUT', 15))
-            else:
-                engine_config['pool_size'] = int(os.getenv('DB_POOL_SIZE', engine_config.get('pool_size', 20)))
-                engine_config['max_overflow'] = int(os.getenv('DB_MAX_OVERFLOW', engine_config.get('max_overflow', 40)))
-                engine_config['pool_timeout'] = int(os.getenv('DB_POOL_TIMEOUT', engine_config.get('pool_timeout', 30)))
-            engine_config['echo'] = os.getenv('DB_ECHO', 'false').lower() == 'true'
-            engine_config.update(kwargs)
+            # Get configuration from DatabaseConfig
+            db_config = DatabaseConfig().config
+            self._connection_string = db_config.pop('url')  # Remove url from config dict
+            
+            # Add any additional configuration from kwargs
+            db_config.update(kwargs)
 
-            # Create engine with optimizations
-            self.engine = create_engine(database_url, **engine_config)
+            # Create engine with Neon configuration
+            self.engine = create_engine(self._connection_string, **db_config)
 
             # Set up query monitoring
             setup_query_monitoring(self.engine, slow_query_threshold_ms=100)
 
-            # Set up adaptive connection pooling using centralized pool config
-            min_pool = int(engine_config['pool_size'])
-            max_pool = int(min_pool + int(engine_config['max_overflow']))
-            # setup_adaptive_pooling currently accepts (engine, min_pool_size, max_pool_size)
+            # Set up adaptive connection pooling
+            min_pool = db_config['pool_size']
+            max_pool = min_pool + db_config['max_overflow']
             self.pool_manager = setup_adaptive_pooling(self.engine, min_pool, max_pool)
 
             # Configure session factory

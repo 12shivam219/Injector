@@ -32,6 +32,7 @@ class ResumeFormat(BaseModel):
     match_count = Column(Integer, default=0)  # Number of resumes matched to this format
     last_used = Column(DateTime(timezone=True))
     is_active = Column(Boolean, default=True)
+    version = Column(String(10), nullable=False, server_default='1.0')  # Format version
     
     # Relationships
     matches = relationship("ResumeFormatMatch", back_populates="format")
@@ -44,7 +45,7 @@ class ResumeFormatMatch(BaseModel):
     """Records which resumes matched which formats"""
     __tablename__ = 'resume_format_matches'
 
-    format_id = Column(Integer, ForeignKey('resume_formats.id'))
+    format_id = Column(String(36), ForeignKey('resume_formats.id'))
     resume_hash = Column(String(64), nullable=False)  # Hash of the resume content
     match_score = Column(Integer)  # Score out of 100
     matched_elements = Column(JSON)  # Details of what was matched

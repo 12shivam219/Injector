@@ -180,15 +180,13 @@ def reload_config():
 
 def create_env_template():
     """Create a template .env file with all configuration options"""
-    template_content = """# Resume Customizer Configuration Template
+    template_content = """# Resume Customizer Configuration Template (Neon)
 # Copy this file to .env and update the values
 
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=resume_customizer
-DB_USER=postgres
-DB_PASSWORD=your_password_here
+# Database Configuration (Neon/Postgres)
+# Provide a full DATABASE_URL. Example:
+# DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DBNAME
+DATABASE_URL=
 
 # Application Settings
 ENVIRONMENT=development

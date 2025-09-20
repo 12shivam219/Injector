@@ -16,14 +16,10 @@ logger = logging.getLogger(__name__)
 def fix_users_table():
     """Drop and recreate users table with correct schema"""
     try:
-        # Get database connection string
-        user = os.getenv('DB_USER', 'postgres')
-        password = os.getenv('DB_PASSWORD', 'admin')
-        host = os.getenv('DB_HOST', 'localhost')
-        port = os.getenv('DB_PORT', '5432')
-        dbname = os.getenv('DB_NAME', 'resume_customizer')
-        
-        connection_string = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+# Get database connection string (DATABASE_URL)
+        connection_string = os.getenv('DATABASE_URL')
+        if not connection_string:
+            raise RuntimeError('DATABASE_URL environment variable is not set')
         
         # Create engine
         engine = create_engine(connection_string)
