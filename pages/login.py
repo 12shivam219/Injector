@@ -84,20 +84,37 @@ def main():
                     # Redirect to main page
                     st.rerun()
                 else:
-                    st.error(message)
-                    # Log failed login attempt
-                    audit_logger.log_security_event(
-                        "login_failure",
-                        username,
-                        {"source": "login_page", "reason": message}
-                    )
+                    # Check if the error message indicates an unregistered user
+                    if "user not found" in message.lower() or "no such user" in message.lower():
+                        st.error("User not registered. Redirecting to registration page...")
+                        # Pre-fill username in registration form
+                        st.session_state.register_username = username
+                        # Switch to registration tab
+                        st.session_state.active_tab = "register"
+                        # Log redirection event
+                        audit_logger.log_security_event(
+                            "login_redirect_to_register",
+                            username,
+                            {"source": "login_page", "reason": "user_not_found"}
+                        )
+                        st.rerun()
+                    else:
+                        st.error(message)
+                        # Log failed login attempt
+                        audit_logger.log_security_event(
+                            "login_failure",
+                            username,
+                            {"source": "login_page", "reason": message}
+                        )
     
     with tab2:
         st.markdown("### 📝 Create a new account")
         
         # Registration form
         with st.form("register_form"):
-            new_username = st.text_input("Username", key="register_username")
+            new_username = st.text_input("Username", 
+                                       value=st.session_state.get('register_username', ''),
+                                       key="register_username")
             new_email = st.text_input("Email", key="register_email")
             new_password = st.text_input("Password", type="password", key="register_password")
             confirm_password = st.text_input("Confirm Password", type="password", key="confirm_password")
