@@ -17,7 +17,7 @@ try:
 except ImportError:
     MAGIC_AVAILABLE = False
 
-from ..utilities.logger import get_logger
+from infrastructure.utilities.logger import get_logger
 
 # Import InputSanitizer with error handling to avoid circular imports
 try:

@@ -6,6 +6,7 @@ Shared initialization and services for all Streamlit pages
 import streamlit as st
 import uuid
 import logging
+import os
 from typing import Dict, Any, Optional
 
 # Core imports
@@ -52,7 +53,6 @@ def initialize_app():
     if APP_CONFIG["auth_required"] and not st.session_state.get('authenticated', False):
         # Get current page
         import inspect
-        import os
         current_file = inspect.stack()[1].filename
         current_filename = os.path.basename(current_file)
         
@@ -207,12 +207,13 @@ def get_cached_services() -> Dict[str, Any]:
         services['resume_processor'] = None
         logging.warning(f"Could not load resume processor: {e}")
     
-    # Requirements Manager - Try database version first, fallback to file-based
+    # Requirements Manager - Use UI requirements manager (supports both DB and file-based)
     try:
-        from database.requirements_manager_db import RequirementsManager
+        from ui.requirements_manager import RequirementsManager
         services['requirements_manager'] = RequirementsManager()
+        logging.info("Requirements manager initialized successfully")
     except (ImportError, Exception) as e:
-        # Fallback to file-based requirements manager
+        # Final fallback to analyzers requirements manager
         try:
             from resume_customizer.analyzers.requirements_integration import RequirementsManager
             services['requirements_manager'] = RequirementsManager()

@@ -7,6 +7,7 @@ import streamlit as st
 from typing import Dict, Any, Optional
 import docx
 from datetime import datetime
+from pathlib import Path
 
 from resume_customizer.analyzers.format_analyzer import FormatAnalyzer
 from database.models import ResumeFormat, ResumeFormatMatch
@@ -76,17 +77,13 @@ class FormatManager:
             key="format_uploader"
         )
         
-        # Format name and description
-        format_name = st.text_input("Format Name", 
-            placeholder="e.g., Standard Professional Format"
-        )
-        
-        format_desc = st.text_area("Format Description",
-            placeholder="Describe the format's characteristics..."
-        )
-        
-        if uploaded_file and format_name:
+        # Use uploaded file name as format name; remove manual name/description inputs
+        if uploaded_file:
             if st.button("📥 Analyze and Save Format"):
+                # Derive format name from file name (without extension)
+                format_name = Path(uploaded_file.name).stem
+                format_desc = ""
+
                 # Process the upload
                 doc = docx.Document(uploaded_file)
                 patterns = self.analyzer.analyze_format(doc)
@@ -101,6 +98,7 @@ class FormatManager:
                     section_patterns=patterns.get('section_patterns', {}),
                     company_patterns=patterns.get('company_patterns', []),
                     title_patterns=patterns.get('title_patterns', []),
+                    version=1,  # Store as integer to match DB schema
                     last_used=datetime.now()
                 )
                 
@@ -154,7 +152,6 @@ class FormatManager:
                         col1, col2 = st.columns([3,1])
 
                         with col1:
-                            st.markdown(f"**Description:** {fmt.description}")
                             st.markdown(f"**Match Count:** {fmt.match_count} resumes")
                             st.markdown(f"**Last Used:** {fmt.last_used}")
 
@@ -188,7 +185,6 @@ class FormatManager:
                     col1, col2 = st.columns([3,1])
 
                     with col1:
-                        st.markdown(f"**Description:** {fmt.get('description')}")
                         st.markdown(f"**Match Count:** {fmt.get('match_count')} resumes")
                         st.markdown(f"**Last Used:** {fmt.get('last_used')}")
 

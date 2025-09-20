@@ -10,8 +10,8 @@ This module contains all infrastructure components:
 """
 
 # Import main utilities
-from .utilities.logger import get_logger
-from .utilities.retry_handler import get_retry_handler
+from infrastructure.utilities.logger import get_logger
+from infrastructure.utilities.retry_handler import get_retry_handler
 
 # Import security components
 from .security.security_enhancements import InputSanitizer, SecurePasswordManager

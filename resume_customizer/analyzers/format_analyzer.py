@@ -11,7 +11,7 @@ from docx import Document
 import hashlib
 
 from infrastructure.utilities.logger import get_logger
-from utilities.fuzzy_matcher import FuzzyMatcher
+from infrastructure.utilities.fuzzy_matcher import FuzzyMatcher
 from database.models import BaseModel
 from database.models import ResumeFormat, ResumeFormatMatch
 
@@ -48,7 +48,7 @@ class FormatAnalyzer:
                 section_patterns=patterns.get('section_patterns'),
                 company_patterns=patterns.get('company_patterns'),
                 title_patterns=patterns.get('title_patterns'),
-                version='1.0'  # Set default version
+                version=1  # Set default version as integer
             )
             
             session.add(format_model)

@@ -32,7 +32,7 @@ class ResumeFormat(BaseModel):
     match_count = Column(Integer, default=0)  # Number of resumes matched to this format
     last_used = Column(DateTime(timezone=True))
     is_active = Column(Boolean, default=True)
-    version = Column(String(10), nullable=False, server_default='1.0')  # Format version
+    version = Column(Integer, nullable=False, default=1)  # Format version aligns with DB integer
     
     # Relationships
     matches = relationship("ResumeFormatMatch", back_populates="format")

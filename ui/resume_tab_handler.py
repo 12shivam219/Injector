@@ -29,7 +29,7 @@ class ResumeTabHandler:
             st.error("⚠️ Resume processing is not available. Please check the application configuration.")
             return
             
-        from config import get_default_email_subject, get_default_email_body, get_smtp_servers
+        from config import get_default_email_subject, get_default_email_body, get_smtp_servers, PARSING_CONFIG
         
         # Create unique identifier for this file instance
         file_content = file.read()
@@ -254,16 +254,18 @@ class ResumeTabHandler:
             # Optimized preview button (no throttling for better UX)
             preview_key = f"preview_{unique_key}"
             if st.button("🔍 Preview Changes", key=preview_key):
-                    # Determine whether to use format-aware injection (user can override)
+                    # Determine whether to use format-aware injection automatically based on threshold
                     match_info = st.session_state.resume_inputs[unique_key].get('format_match')
-                    use_format = False
-                    if match_info and match_info.get('match_score', 0) >= 70:
-                        use_format = True
+                    threshold = PARSING_CONFIG.get('company_match_threshold', 80)
+                    use_format = bool(match_info and match_info.get('match_score', 0) >= threshold)
 
-                    # Offer toggle to user before preview
                     if match_info:
-                        st.info(f"Format matched: {match_info.get('matched_format')} ({match_info.get('match_score')}%)")
-                        use_format = st.checkbox("Use format-aware injection for this file", value=use_format, key=f"use_format_{unique_key}")
+                        status_msg = (
+                            f"Using format-aware injection automatically: {match_info.get('matched_format')} "
+                            f"({match_info.get('match_score')}%) [threshold {threshold}%]" if use_format else 
+                            f"Format match found but below threshold ({match_info.get('match_score')}% < {threshold}%). Proceeding with standard injection."
+                        )
+                        st.info(status_msg)
 
                     file_data_for_preview = {
                         'filename': file.name,
@@ -271,8 +273,8 @@ class ResumeTabHandler:
                         'text': text_input,
                         'manual_text': manual_text,
                     }
-                    if match_info and use_format:
-                        file_data_for_preview['matched_companies'] = match_info.get('matched_companies', [])
+                    if use_format:
+                        file_data_for_preview['matched_companies'] = match_info.get('matched_companies', []) if match_info else []
 
                     self.handle_preview(file, file_data_for_preview['text'], file_data_for_preview.get('manual_text', ''), matched_companies=file_data_for_preview.get('matched_companies'))
         
@@ -314,7 +316,8 @@ class ResumeTabHandler:
                     }
                     # Pass matched companies if format-aware is enabled for this file
                     match_info = st.session_state.resume_inputs[unique_key].get('format_match')
-                    if match_info and st.session_state.get(f"use_format_{unique_key}"):
+                    threshold = PARSING_CONFIG.get('company_match_threshold', 80)
+                    if match_info and match_info.get('match_score', 0) >= threshold:
                         file_data_for_processing['matched_companies'] = match_info.get('matched_companies', [])
                     
                     if async_mode:

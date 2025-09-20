@@ -102,6 +102,18 @@ class StreamlitLogHandler(logging.Handler):
             return []
 
 
+class WindowsSafeFormatter(logging.Formatter):
+    """Formatter that sanitizes messages for Windows console compatibility."""
+    
+    def format(self, record):
+        # Sanitize the message to handle Windows encoding issues
+        if hasattr(record, 'msg') and isinstance(record.msg, str):
+            # Replace common problematic Unicode characters
+            record.msg = record.msg.replace('✅', '[OK]').replace('⚠️', '[WARN]').replace('❌', '[ERROR]')
+            record.msg = record.msg.replace('📋', '[INFO]').replace('🔍', '[SEARCH]').replace('📄', '[DOC]')
+        return super().format(record)
+
+
 class ApplicationLogger:
     """Main logger class for the Resume Customizer application."""
     
@@ -136,13 +148,22 @@ class ApplicationLogger:
         )
         file_handler.setFormatter(file_formatter)
         
-        # Console handler
+        # Console handler with Windows-safe formatting
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
-        console_formatter = CustomFormatter(
-            '%(asctime)s - %(levelname)s - %(message)s',
-            datefmt='%H:%M:%S'
-        )
+        
+        # Use Windows-safe formatter on Windows, regular formatter on other systems
+        import platform
+        if platform.system().lower() == 'windows':
+            console_formatter = WindowsSafeFormatter(
+                '%(asctime)s - %(levelname)s - %(message)s',
+                datefmt='%H:%M:%S'
+            )
+        else:
+            console_formatter = CustomFormatter(
+                '%(asctime)s - %(levelname)s - %(message)s',
+                datefmt='%H:%M:%S'
+            )
         console_handler.setFormatter(console_formatter)
         
         # Add handlers

@@ -27,12 +27,14 @@ class RequirementsManager:
         
         if self.use_database:
             try:
-                from database import PostgreSQLRequirementsManager, setup_database_environment
+                from database import setup_database_environment
                 # Setup database environment
                 env_result = setup_database_environment()
                 if env_result['success']:
-                    self.db_manager = PostgreSQLRequirementsManager()
-                    logger.info("✅ Using PostgreSQL backend for requirements")
+                    # PostgreSQLRequirementsManager doesn't exist yet, fallback to JSON
+                    logger.warning("⚠️ PostgreSQLRequirementsManager not implemented, using JSON storage")
+                    self.use_database = False
+                    self.requirements = self._load_requirements()
                 else:
                     logger.warning("⚠️ PostgreSQL setup failed, falling back to JSON storage")
                     self.use_database = False
