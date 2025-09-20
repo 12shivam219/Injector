@@ -42,6 +42,11 @@ def main():
         st.error("Critical: Database health check failed on startup. Check your DATABASE_URL and database accessibility.")
         st.stop()
     
+    # Add logout button to sidebar
+    from ui.secure_components import SecureUIComponents
+    secure_ui = SecureUIComponents()
+    secure_ui.render_logout_button()
+    
     # Welcome page content
     st.title("📝 Resume Customizer")
     st.markdown(f"### 🎯 **Welcome to Resume Customizer v{APP_CONFIG['version']}**")

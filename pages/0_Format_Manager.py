@@ -27,6 +27,11 @@ class FormatManager:
         
     def render_format_tab(self):
         """Render the format management tab"""
+        # Add logout button to sidebar
+        from ui.secure_components import SecureUIComponents
+        secure_ui = SecureUIComponents()
+        secure_ui.render_logout_button()
+        
         st.title("📋 Resume Format Manager")
         st.markdown("### Upload and manage resume format templates")
         

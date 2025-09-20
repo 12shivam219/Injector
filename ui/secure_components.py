@@ -26,6 +26,25 @@ class SecureUIComponents:
         self.sanitizer = InputSanitizer()
         self.rate_limiter = RateLimiter()
         self.session_manager = SessionSecurityManager()
+
+    def render_logout_button(self):
+        """Render a logout button in the sidebar with user info."""
+        # Only show if user is authenticated
+        if st.session_state.get('authenticated', False):
+            with st.sidebar:
+                st.markdown("---")
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"👤 Logged in as: **{st.session_state.get('auth_username', 'User')}**")
+                with col2:
+                    if st.button("🚪 Logout", key="sidebar_logout"):
+                        from infrastructure.security.auth import auth_manager
+                        success, message = auth_manager.logout()
+                        if success:
+                            st.success(message)
+                            st.rerun()
+                        else:
+                            st.error(message)
     
     @rate_limit("file_upload")  # Using configured limits from RateLimiter
     def render_secure_file_upload(self, key: str = "secure_file_upload", allowed_types=None):
