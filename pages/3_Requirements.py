@@ -17,6 +17,11 @@ if app_initialized:
     services = get_cached_services()
     logger = get_cached_logger()
     
+    # Add logout button
+    from ui.secure_components import SecureUIComponents
+    secure_ui = SecureUIComponents()
+    secure_ui.render_logout_button()
+    
     # Set page title
     st.title("📋 Requirements Manager")
     st.markdown("📝 **Create and manage job requirements to customize your resume for specific positions**")

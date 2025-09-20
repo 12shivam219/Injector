@@ -22,6 +22,11 @@ if app_initialized:
     secure_ui = services['secure_ui_components'] 
     bulk_processor = services['bulk_processor']
     
+    # Add logout button
+    from ui.secure_components import SecureUIComponents
+    secure_ui = SecureUIComponents()
+    secure_ui.render_logout_button()
+    
     # Set page title
     st.title("📤 Bulk Processor")
     st.markdown("🚀 **Process multiple resumes simultaneously for maximum efficiency**")

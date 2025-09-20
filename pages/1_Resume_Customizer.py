@@ -20,6 +20,11 @@ def main():
     if ui is None:
         ui = UIComponents()
     services['ui_components'] = ui
+        
+    # Add logout button
+    from ui.secure_components import SecureUIComponents
+    secure_ui = SecureUIComponents()
+    secure_ui.render_logout_button()
 
     secure_ui = services.get('secure_ui_components')
     tab_handler = services.get('resume_tab_handler')

@@ -21,6 +21,11 @@ if app_initialized:
     services = get_cached_services()
     features = check_feature_availability()
     
+    # Add logout button
+    from ui.secure_components import SecureUIComponents
+    secure_ui = SecureUIComponents()
+    secure_ui.render_logout_button()
+    
     # Set page title
     st.title("⚙️ Settings")
     st.markdown("🔧 **Configure application preferences and system settings**")

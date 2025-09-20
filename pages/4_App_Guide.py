@@ -16,6 +16,11 @@ if app_initialized:
     initialize_app()
     services = get_cached_services()
     
+    # Add logout button
+    from ui.secure_components import SecureUIComponents
+    secure_ui = SecureUIComponents()
+    secure_ui.render_logout_button()
+    
     # Get application guide
     app_guide = services.get('app_guide')
     
