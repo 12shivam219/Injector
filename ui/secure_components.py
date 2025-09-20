@@ -32,19 +32,55 @@ class SecureUIComponents:
         # Only show if user is authenticated
         if st.session_state.get('authenticated', False):
             with st.sidebar:
-                st.markdown("---")
-                col1, col2 = st.columns([3, 1])
-                with col1:
-                    st.markdown(f"👤 Logged in as: **{st.session_state.get('auth_username', 'User')}**")
-                with col2:
-                    if st.button("🚪 Logout", key="sidebar_logout"):
-                        from infrastructure.security.auth import auth_manager
-                        success, message = auth_manager.logout()
-                        if success:
-                            st.success(message)
-                            st.rerun()
-                        else:
-                            st.error(message)
+                # Add custom CSS for the user info container
+                st.markdown("""
+                    <style>
+                    .user-info-container {
+                        background-color: #f0f2f6;
+                        border-radius: 8px;
+                        padding: 10px;
+                        margin-top: 20px;
+                        margin-bottom: 10px;
+                    }
+                    .username-text {
+                        color: #262730;
+                        font-size: 0.9em;
+                        margin-bottom: 8px;
+                    }
+                    .stButton > button {
+                        width: 100%;
+                        background-color: #FF4B4B;
+                        color: white;
+                        border: none;
+                        padding: 4px 8px;
+                        font-size: 0.9em;
+                    }
+                    .stButton > button:hover {
+                        background-color: #FF3333;
+                        border: none;
+                    }
+                    </style>
+                    """, unsafe_allow_html=True)
+
+                # Create a container for user info and logout button
+                st.markdown("""
+                    <div class="user-info-container">
+                        <div class="username-text">
+                            👤 Logged in as:<br/>
+                            <strong>{}</strong>
+                        </div>
+                    </div>
+                """.format(st.session_state.get('auth_username', 'User')), unsafe_allow_html=True)
+                
+                # Add the logout button with custom styling
+                if st.button("🚪 Logout", key="sidebar_logout", help="Click to log out of your account"):
+                    from infrastructure.security.auth import auth_manager
+                    success, message = auth_manager.logout()
+                    if success:
+                        st.success(message)
+                        st.rerun()
+                    else:
+                        st.error(message)
     
     @rate_limit("file_upload")  # Using configured limits from RateLimiter
     def render_secure_file_upload(self, key: str = "secure_file_upload", allowed_types=None):
