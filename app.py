@@ -113,7 +113,7 @@ def main():
     
     with col1:
         if st.button("📄 Start Customizing", key="start_customizing", type="primary"):
-            st.switch_page("pages/0_Format_Manager.py")
+            st.switch_page("pages/1_Resume_Customizer.py")
     
     with col2:
         if st.button("📋 Manage Requirements", key="manage_requirements"):

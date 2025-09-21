@@ -2,6 +2,7 @@ import streamlit as st
 from io import BytesIO
 import base64
 import hashlib
+from docx import Document
 
 from infrastructure.security.validators import TextValidator
 import logging
@@ -26,8 +27,15 @@ class ResumeTabHandler:
     def render_tab(self, file):
         """Render the tab content for a single resume file."""
         if self.resume_manager is None:
-            st.error("⚠️ Resume processing is not available. Please check the application configuration.")
-            return
+            # Try to initialize resume manager as fallback
+            try:
+                from resume_customizer.processors.resume_processor import get_resume_manager
+                self.resume_manager = get_resume_manager("v2.2")
+                logger.info("Resume manager initialized as fallback")
+            except Exception as e:
+                logger.error(f"Failed to initialize resume manager: {e}")
+                st.error("⚠️ Resume processing is not available. Please check the application configuration.")
+                return
             
         from config import get_default_email_subject, get_default_email_body, get_smtp_servers, PARSING_CONFIG
         
@@ -58,21 +66,61 @@ class ResumeTabHandler:
         if st.checkbox("📋 Show Input Format Guide", key=f"show_input_format_guide_{unique_key}", help="View supported formats"):
             st.info("""
 **3 Supported Formats:**
-1. **Tech Stack** + tabbed bullets (•\tpoint)
-2. **Tech Stack:** + tabbed bullets (•\tpoint)  
-3. **Tech Stack** + regular bullets (• point)
+1. **Tech Stack** + bullet points
+```
+Python
+• Developed web applications using Django
+• Built APIs with Flask framework
+
+JavaScript
+• Created interactive UI with React
+• Implemented Node.js backends
+```
+2. **Tech Stack with colon** + bullet points
+```
+Python:
+• Developed web applications using Django
+• Built APIs with Flask framework
+
+JavaScript:
+• Created interactive UI with React
+• Implemented Node.js backends
+```
+3. **Tech Stack** + bullet points (one line)
+```
+Python • Developed web applications using Django • Built APIs with Flask framework
+```
             """)
         
-        st.warning("⚠️ Only the 3 formats above are accepted. Other formats will be rejected with detailed error messages.")
+        st.warning("⚠️ Only the formats above are accepted. Other formats will be rejected with detailed error messages.")
         
         # Text input for tech stacks
         text_input = st.text_area(
             "Paste your tech stack data here:",
             value=file_data.get('text', ''),
             height=150,
-            help="Use only the 3 supported formats shown above. Example:\n\nJava\n•\tSpring Boot development\n•\tREST API implementation",
+            help="Enter your tech stacks and bullet points in one of the supported formats shown above.",
             key=f"tech_stack_{unique_key}"
         )
+        
+        # Validate and preview the parsed tech stacks
+        if text_input:
+            try:
+                from resume_customizer.parsers.text_parser import parse_input_text
+                points, stacks = parse_input_text(text_input)
+                if points and stacks:
+                    st.success(f"✅ Successfully parsed {len(points)} points from {len(stacks)} tech stacks")
+                    with st.expander("🔍 Preview Parsed Data"):
+                        for stack in stacks:
+                            st.markdown(f"**{stack}**")
+                            stack_points = [p for p in points if any(kw.lower() in p.lower() for kw in [stack])]
+                            for point in stack_points:
+                                st.markdown(f"• {point}")
+                else:
+                    st.error("❌ No valid tech stacks or points found. Please check the format.")
+            except Exception as e:
+                st.error(f"❌ Error parsing input: {str(e)}")
+        
         file_data['text'] = text_input
         
         # Simplified manual points input
@@ -86,6 +134,7 @@ class ResumeTabHandler:
             file_data['manual_text'] = manual_text
         else:
             file_data['manual_text'] = file_data.get('manual_text', '')
+            
         
         # Email configuration
         st.markdown("#### 📧 Email Configuration (Optional)")
@@ -545,18 +594,17 @@ class ResumeTabHandler:
 
             st.success(f"✅ Resume processed with {result['points_added']} points added!")
             
-            # Provide download link
-            if 'modified_content' in result:
-                b64 = base64.b64encode(result['modified_content']).decode()
-                link = f'<a href="data:application/octet-stream;base64,{b64}" download="{file.name}">📥 Download</a>'
-                st.markdown(link, unsafe_allow_html=True)
-                # Store buffer as modified_content if it doesn't exist
-                if not 'modified_content' in result:
-                    result['modified_content'] = result['buffer']
-            elif 'modified_content' in result:
-                b64 = base64.b64encode(result['modified_content']).decode()
-                link = f'<a href="data:application/octet-stream;base64,{b64}" download="{file.name}">📥 Download</a>'
-                st.markdown(link, unsafe_allow_html=True)
+            # Provide download button
+            download_data = result.get('modified_content') or result.get('buffer')
+            if download_data:
+                output_filename = f"customized_{file.name}"
+                st.download_button(
+                    "📥 Download Customized Resume",
+                    data=download_data,
+                    file_name=output_filename,
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    type="primary"
+                )
             else:
                 st.warning("⚠️ No downloadable content available.")
                 
