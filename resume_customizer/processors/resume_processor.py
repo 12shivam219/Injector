@@ -14,6 +14,7 @@ from typing import List, Dict, Any, Optional, Callable, Tuple, Union
 from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
+import traceback
 
 # External imports
 from docx import Document
@@ -317,7 +318,7 @@ def _process_single_resume_worker(payload: Dict[str, Any]) -> ProcessingResult:
 
 
 class ResumeProcessor:
-    @with_file_error_handling
+    @with_file_error_handling("resume_processing")
     def process_single_resume(self, file_data: Dict[str, Any], progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
         """
         Process a single resume file with comprehensive error handling.
@@ -331,15 +332,24 @@ class ResumeProcessor:
         """
         start_time = time.time()
         filename = file_data.get('filename', 'unknown')
-        file_obj = file_data.get('file')
+        file = file_data.get('file')
         text = file_data.get('text', '')
+        
+        # Convert file to BytesIO
+        if hasattr(file, 'read'):
+            file_content = file.read()
+            file.seek(0)  # Reset file pointer
+            file_obj = BytesIO(file_content)
+        else:
+            file_obj = None
         
         # Create error context for detailed error handling
         error_context = ErrorContext(
             operation="resume_processing",
-            file_name=filename,
             severity=ErrorSeverity.HIGH,
-            metadata={
+            component="resume_processor",
+            details={
+                "resume_file": filename,  # Using a different name to avoid conflict
                 "text_length": len(text) if text else 0,
                 "has_file_obj": file_obj is not None
             }
@@ -349,8 +359,7 @@ class ResumeProcessor:
             if not file_obj:
                 raise FileProcessingError(
                     "Missing file object in file_data",
-                    context=error_context,
-                    error_code="MISSING_FILE_OBJ"
+                    filename
                 )
                 
             # Update progress if callback provided
@@ -366,9 +375,16 @@ class ResumeProcessor:
                 from resume_customizer.parsers.text_parser import parse_input_text
                 parsed_points, _ = parse_input_text(text)
             except Exception as parser_error:
+                # Create new error context with updated severity
+                parser_error_context = ErrorContext(
+                    operation=error_context.operation,
+                    severity=ErrorSeverity.MEDIUM,
+                    component=error_context.component,
+                    details={**error_context.details, "error_stage": "parsing"}
+                )
                 raise FileProcessingError(
                     f"Failed to parse input text: {str(parser_error)}",
-                    context=error_context.update(severity=ErrorSeverity.MEDIUM),
+                    context=parser_error_context,
                     error_code="PARSER_ERROR",
                     original_exception=parser_error
                 )
@@ -387,14 +403,39 @@ class ResumeProcessor:
                     original_exception=doc_error
                 )
             
+            # Prepare output bytes from processed document (handle BytesIO, file-like, Document, bytes)
+            if isinstance(processed_doc, BytesIO):
+                try:
+                    processed_doc.seek(0)
+                except Exception:
+                    pass
+                output_bytes = processed_doc.read()
+            elif hasattr(processed_doc, 'read') and callable(getattr(processed_doc, 'read')):
+                try:
+                    if hasattr(processed_doc, 'seek'):
+                        processed_doc.seek(0)
+                except Exception:
+                    pass
+                data = processed_doc.read()
+                output_bytes = data if isinstance(data, (bytes, bytearray)) else bytes(data)
+            elif hasattr(processed_doc, "save"):
+                tmp = BytesIO()
+                processed_doc.save(tmp)
+                tmp.seek(0)
+                output_bytes = tmp.getvalue()
+            elif isinstance(processed_doc, (bytes, bytearray)):
+                output_bytes = bytes(processed_doc)
+            else:
+                raise TypeError(f"Unsupported processed document type: {type(processed_doc).__name__}")
+
             # Return success result
             return {
                 'success': True,
-                'filename': filename,
                 'points_added': len(parsed_points),
+                'modified_content': output_bytes,
+                'filename': filename,
                 'processing_time': time.time() - start_time,
                 'tech_stacks_used': [text],
-                'modified_content': processed_doc.getvalue() if hasattr(processed_doc, 'getvalue') else processed_doc,
                 'metadata': {
                     'parser_used': 'TextParser',
                     'processing_diagnostics': FileErrorHandler.get_diagnostics(filename)
@@ -407,9 +448,21 @@ class ResumeProcessor:
             raise
             
         except Exception as e:
-            # Log the error with enhanced context
-            error_details = FileErrorHandler.capture_error_details(e, filename)
+            # Log the error with enhanced context (without depending on FileErrorHandler static methods)
+            error_details = {
+                'filename': filename,
+                'error_type': type(e).__name__,
+                'error_message': str(e),
+                'traceback': traceback.format_exc(),
+                'timestamp': datetime.now().isoformat()
+            }
             logging.error(f"Error processing resume {filename}: {error_details}")
+            
+            # Prepare diagnostics with graceful fallback
+            try:
+                diagnostics = FileErrorHandler.get_diagnostics(filename)
+            except Exception:
+                diagnostics = {'filename': filename}
             
             # Return error result with enhanced diagnostics
             return {
@@ -418,7 +471,7 @@ class ResumeProcessor:
                 'error_details': error_details,
                 'filename': filename,
                 'processing_time': time.time() - start_time,
-                'diagnostics': FileErrorHandler.get_diagnostics(filename)
+                'diagnostics': diagnostics
             }
     
     def process_single_resume_async(self, file_data: Dict[str, Any]):
@@ -1339,12 +1392,17 @@ class ResumeManager:
         self.email_manager.close_all_connections()
 
 
-# Global resume manager instance
-resume_manager = ResumeManager()
+# Global resume manager accessor
+# Use a lightweight proxy so callers importing `resume_manager` don't hold onto a stale instance
+class _ResumeManagerProxy:
+    def __getattr__(self, name):
+        return getattr(get_resume_manager(), name)
+
+resume_manager = _ResumeManagerProxy()
 
 
 @st.cache_resource
-def get_resume_manager(_version: str = "v2.2") -> ResumeManager:
+def get_resume_manager(_version: str = "v2.3") -> ResumeManager:
     """
     Get the global resume manager instance.
     

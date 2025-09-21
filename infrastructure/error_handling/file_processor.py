@@ -20,12 +20,33 @@ logger = get_logger()
 T = TypeVar('T')
 
 class FileProcessingError(FileError):
-    """Specialized error for file processing failures."""
-    def __init__(self, message: str, filename: str, original_error: Optional[Exception] = None):
-        self.filename = filename
-        self.original_error = original_error
+    """Specialized error for file processing failures.
+    
+    Supports both simple and extended initialization to maintain backward compatibility.
+    """
+    def __init__(
+        self,
+        message: str,
+        filename: Optional[str] = None,
+        original_error: Optional[Exception] = None,
+        context: Optional[ErrorContext] = None,
+        error_code: Optional[str] = None,
+        original_exception: Optional[Exception] = None
+    ):
+        # Determine filename from explicit arg or context details
+        ctx_filename = None
+        if context and isinstance(context.details, dict):
+            ctx_filename = context.details.get('resume_file') or context.details.get('filename')
+        self.filename = filename or ctx_filename or "unknown_file"
+
+        # Normalize original error field
+        self.original_error = original_error or original_exception
         self.timestamp = datetime.now()
-        super().__init__(f"{message} (File: {filename})")
+
+        # Compose message with optional error code and filename
+        prefix = f"[{error_code}] " if error_code else ""
+        suffix = f" (File: {self.filename})" if self.filename else ""
+        super().__init__(f"{prefix}{message}{suffix}")
 
 
 class FileErrorHandler:
@@ -35,19 +56,66 @@ class FileErrorHandler:
         self.error_history: List[Dict[str, Any]] = []
         self.max_history = 100
     
+    @staticmethod
+    def capture_error_details(error: Exception, filename: str) -> Dict[str, Any]:
+        """Return a structured snapshot of error details for logging/diagnostics."""
+        return {
+            'filename': filename,
+            'error_type': type(error).__name__,
+            'error_message': str(error),
+            'traceback': traceback.format_exc(),
+            'timestamp': datetime.now().isoformat()
+        }
+
+    @staticmethod
+    def get_diagnostics(filename: str) -> Dict[str, Any]:
+        """Compute lightweight diagnostics about the file and environment.
+        This is a stateless helper so it can be used without a singleton instance.
+        """
+        info: Dict[str, Any] = {
+            'filename': filename,
+            'exists': False,
+            'size_bytes': None,
+            'extension': None,
+            'possible_causes': [],
+            'suggested_solutions': [],
+            'severity': 'medium'
+        }
+        try:
+            info['extension'] = os.path.splitext(filename)[1].lower() if filename else None
+            if filename and os.path.exists(filename):
+                info['exists'] = True
+                try:
+                    info['size_bytes'] = os.path.getsize(filename)
+                except Exception:
+                    info['size_bytes'] = None
+            else:
+                info['possible_causes'].append('File may not exist on disk (e.g., uploaded stream only)')
+                info['suggested_solutions'].append('Ensure the uploaded file stream is passed correctly to the processor')
+
+            if info['extension'] not in ('.docx', '.pdf'):
+                info['possible_causes'].append('Unsupported file extension')
+                info['suggested_solutions'].append('Upload a .docx or supported format')
+
+        except Exception:
+            # Best effort diagnostics
+            pass
+        return info
+    
     def handle_file_error(self, error: Exception, filename: str, operation: str) -> Dict[str, Any]:
         """Handle a file processing error and return diagnostic information."""
         error_info = {
-            'timestamp': datetime.now(),
+            'success': False,
+            'error': str(error),
             'filename': filename,
+            'timestamp': datetime.now().isoformat(),
             'operation': operation,
             'error_type': type(error).__name__,
-            'error_message': str(error),
             'traceback': traceback.format_exc()
         }
         
         # Add diagnostic information
-        error_info['diagnostics'] = self._diagnose_error(error, filename)
+        error_info.update(self._diagnose_error(error, filename))
         
         # Log the error
         logger.error(
@@ -136,30 +204,45 @@ def with_file_error_handling(operation_name: str, severity: ErrorSeverity = Erro
             try:
                 return func(*args, **kwargs)
             except Exception as e:
+                # Create error context with proper fields
+                error_context = ErrorContext(
+                    operation=operation_name,
+                    severity=severity,
+                    details={
+                        'filename': filename,
+                        'error_type': type(e).__name__,
+                        'error_message': str(e)
+                    }
+                )
+                
                 # Create error handler if needed
                 handler = FileErrorHandler()
                 error_info = handler.handle_file_error(e, filename, operation_name)
                 
-                # Display user-friendly error in Streamlit
-                if st._is_running:
-                    st.error(f"❌ Error processing file {filename}: {str(e)}")
-                    
-                    # Show detailed diagnostics for medium/high severity
-                    if error_info['diagnostics']['severity'] in ['medium', 'high']:
-                        with st.expander("📊 Error Diagnostics"):
-                            st.write("**Possible Causes:**")
-                            for cause in error_info['diagnostics']['possible_causes']:
-                                st.write(f"- {cause}")
-                            
-                            st.write("**Suggested Solutions:**")
-                            for solution in error_info['diagnostics']['suggested_solutions']:
-                                st.write(f"- {solution}")
-                    
-                    # Show technical details for developers
-                    with st.expander("🔍 Technical Details (for support)"):
-                        st.code(error_info['traceback'])
+                # Log the error
+                logger.error(f"Error processing file {filename}: {str(e)}")
                 
-                # Return None or error info depending on the use case
+                # Return error information in a consistent format
+                # Display error information in the UI
+                if 'diagnostics' in error_info:
+                    for cause in error_info['diagnostics']['possible_causes']:
+                        st.write(f"- {cause}")
+                    
+                    st.write("**Suggested Solutions:**")
+                    for solution in error_info['diagnostics']['suggested_solutions']:
+                        st.write(f"- {solution}")
+                
+                # Show technical details for developers
+                with st.expander("🔍 Technical Details (for support)"):
+                    st.code(error_info['traceback'])
+
+                # Return error information in a consistent format
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'error_details': error_info,
+                    'filename': filename
+                }
                 return None
         
         return wrapper

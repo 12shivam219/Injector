@@ -546,8 +546,8 @@ class ResumeTabHandler:
             st.success(f"✅ Resume processed with {result['points_added']} points added!")
             
             # Provide download link
-            if 'buffer' in result:
-                b64 = base64.b64encode(result['buffer']).decode()
+            if 'modified_content' in result:
+                b64 = base64.b64encode(result['modified_content']).decode()
                 link = f'<a href="data:application/octet-stream;base64,{b64}" download="{file.name}">📥 Download</a>'
                 st.markdown(link, unsafe_allow_html=True)
                 # Store buffer as modified_content if it doesn't exist
