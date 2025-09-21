@@ -73,11 +73,16 @@ class DocumentProcessor:
             
             # Add points to projects
             total_added = 0
+            logger.info(f"Starting to add points to {len(distribution_result.distribution)} projects")
             for project_name, points in distribution_result.distribution.items():
                 project = next((p for p in projects if p.name == project_name), None)
                 if project and points:
+                    logger.info(f"Adding {len(points)} points to project '{project_name}'")
                     added = self._add_points_to_project(doc, project, points, document_marker)
                     total_added += added
+                    logger.info(f"Successfully added {added} points to project '{project_name}'")
+                else:
+                    logger.warning(f"Skipped project '{project_name}' - project found: {project is not None}, points: {len(points) if points else 0}")
             
             # Save to buffer
             output_buffer = BytesIO()

@@ -373,7 +373,9 @@ class ResumeProcessor:
             try:
                 # Parse input text to get points
                 from resume_customizer.parsers.text_parser import parse_input_text
-                parsed_points, _ = parse_input_text(text)
+                parsed_points, tech_stacks_used = parse_input_text(text)
+                # Create the tuple that document processor expects
+                parsed_data = (parsed_points, tech_stacks_used)
             except Exception as parser_error:
                 # Create new error context with updated severity
                 parser_error_context = ErrorContext(
@@ -393,8 +395,8 @@ class ResumeProcessor:
             matched_companies = file_data.get('matched_companies') if isinstance(file_data, dict) else None
 
             try:
-                # Process the document with the parsed points
-                processed_doc = doc_processor.process_document(file_obj, parsed_points, matched_companies=matched_companies)
+                # Process the document with the parsed points tuple
+                processed_doc = doc_processor.process_document(file_obj, parsed_data, matched_companies=matched_companies)
             except Exception as doc_error:
                 raise FileProcessingError(
                     f"Document processing failed: {str(doc_error)}",
@@ -435,7 +437,7 @@ class ResumeProcessor:
                 'modified_content': output_bytes,
                 'filename': filename,
                 'processing_time': time.time() - start_time,
-                'tech_stacks_used': [text],
+                'tech_stacks_used': tech_stacks_used,
                 'metadata': {
                     'parser_used': 'TextParser',
                     'processing_diagnostics': FileErrorHandler.get_diagnostics(filename)
