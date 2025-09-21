@@ -189,7 +189,6 @@ class DatabaseConnectionManager:
         try:
             from .models import Base
             from .models import ResumeDocument, ResumeCustomization, EmailSend
-            from .models import ResumeFormat, ResumeFormatMatch
             
             # Determine engine to use for schema creation
             use_temp_engine = False

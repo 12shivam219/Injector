@@ -58,7 +58,7 @@ PARSING_CONFIG = {
 }
 # Company matching / fuzzy options
 PARSING_CONFIG.update({
-    "company_match_threshold": 80,
+    "company_match_threshold": 70,
     "company_match_algorithm": "token_sort_ratio"  # options: token_sort_ratio, token_set_ratio, ratio
 })
 

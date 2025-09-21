@@ -44,101 +44,12 @@ class ResumeTabHandler:
             st.session_state.resume_inputs[unique_key] = {}
         file_data = st.session_state.resume_inputs[unique_key]
 
-        # Automatic format matching on upload: analyze and store match info in session
+        # Initialize document
         try:
-            from resume_customizer.analyzers.format_analyzer import FormatAnalyzer
-            from infrastructure.storage.local_format_store import LocalFormatStore
-            analyzer = FormatAnalyzer()
-            # Load document for analysis
-            try:
-                doc = Document(BytesIO(file_content))
-            except Exception:
-                doc = None
-
-            match_info = None
-            if doc is not None:
-                # Try DB first
-                services = None
-                try:
-                    from infrastructure.app.app_bootstrap import get_cached_services
-                    services = get_cached_services()
-                except Exception:
-                    services = None
-
-                stored_formats = []
-                if services and services.get('db_session'):
-                    try:
-                        Session = services.get('db_session')
-                        session = Session()
-                        from database.models import ResumeFormat
-                        stored_formats = session.query(ResumeFormat).all()
-                        session.close()
-                    except Exception:
-                        stored_formats = []
-
-                if not stored_formats:
-                    # Fallback to local formats
-                    try:
-                        local_store = LocalFormatStore()
-                        stored_formats = local_store.list_formats() or []
-                    except Exception:
-                        stored_formats = []
-
-                # If stored_formats are dicts (local store), adapt to a common interface
-                best_score = 0
-                best_fmt = None
-                best_matched = None
-                for fmt in stored_formats:
-                    try:
-                        if isinstance(fmt, dict):
-                            # adapt dict -> simple object with attributes used by analyzer
-                            class _Tmp:
-                                pass
-                            tmp = _Tmp()
-                            for k, v in fmt.items():
-                                setattr(tmp, k, v)
-                            fmt_obj = tmp
-                        else:
-                            fmt_obj = fmt
-
-                        score, matched = analyzer.match_format(Document(BytesIO(file_content)), fmt_obj)
-                        if score > best_score:
-                            best_score = score
-                            best_fmt = fmt_obj
-                            best_matched = matched
-                    except Exception:
-                        continue
-
-                if best_fmt:
-                    match_info = {
-                        'matched_format': getattr(best_fmt, 'name', getattr(best_fmt, 'id', None)),
-                        'match_score': best_score,
-                        'matched_elements': best_matched,
-                        'matched_companies': []
-                    }
-                    # try to extract company names from matched format or matched_elements
-                    try:
-                        if isinstance(best_fmt, dict):
-                            cp = best_fmt.get('company_patterns') or []
-                        else:
-                            cp = getattr(best_fmt, 'company_patterns', None) or []
-                        # company_patterns may be list of dicts with 'pattern'
-                        for c in cp:
-                            if isinstance(c, dict) and 'pattern' in c:
-                                match_info['matched_companies'].append(c['pattern'])
-                            elif isinstance(c, str):
-                                match_info['matched_companies'].append(c)
-                    except Exception:
-                        pass
-
-            # Store match info in session state for this file
-            if match_info:
-                st.session_state.resume_inputs[unique_key]['format_match'] = match_info
-            else:
-                st.session_state.resume_inputs[unique_key]['format_match'] = None
-        except Exception:
-            # Non-fatal; ensure no crash during upload
-            st.session_state.resume_inputs[unique_key]['format_match'] = None
+            doc = Document(BytesIO(file_content))
+        except Exception as e:
+            logger.error(f"Error loading document: {str(e)}")
+            doc = None
         
         # Tech stack input
         st.markdown("#### 📝 Tech Stack & Points")
@@ -254,29 +165,14 @@ class ResumeTabHandler:
             # Optimized preview button (no throttling for better UX)
             preview_key = f"preview_{unique_key}"
             if st.button("🔍 Preview Changes", key=preview_key):
-                    # Determine whether to use format-aware injection automatically based on threshold
-                    match_info = st.session_state.resume_inputs[unique_key].get('format_match')
-                    threshold = PARSING_CONFIG.get('company_match_threshold', 80)
-                    use_format = bool(match_info and match_info.get('match_score', 0) >= threshold)
-
-                    if match_info:
-                        status_msg = (
-                            f"Using format-aware injection automatically: {match_info.get('matched_format')} "
-                            f"({match_info.get('match_score')}%) [threshold {threshold}%]" if use_format else 
-                            f"Format match found but below threshold ({match_info.get('match_score')}% < {threshold}%). Proceeding with standard injection."
-                        )
-                        st.info(status_msg)
-
                     file_data_for_preview = {
                         'filename': file.name,
                         'file': file,
                         'text': text_input,
                         'manual_text': manual_text,
                     }
-                    if use_format:
-                        file_data_for_preview['matched_companies'] = match_info.get('matched_companies', []) if match_info else []
 
-                    self.handle_preview(file, file_data_for_preview['text'], file_data_for_preview.get('manual_text', ''), matched_companies=file_data_for_preview.get('matched_companies'))
+                    self.handle_preview(file, file_data_for_preview['text'], file_data_for_preview.get('manual_text', ''))
         
         with col2:
             # Check if async processing is potentially available
@@ -436,7 +332,7 @@ class ResumeTabHandler:
                     st.error(f"❌ Error checking task status: {str(e)}")
                     st.info("🛠️ Try restarting the Celery worker and Streamlit app")
 
-    def handle_preview(self, file, user_input, manual_text="", matched_companies=None):
+    def handle_preview(self, file, user_input, manual_text=""):
         """Handle preview generation for a single file."""
         if not user_input.strip() and not manual_text:
             st.warning(f"⚠️ Please enter tech stack data for {file.name} before previewing.")
@@ -454,7 +350,7 @@ class ResumeTabHandler:
         
         with st.expander(f"📄 Preview for {file.name}", expanded=True):
             try:
-                result = self.resume_manager.generate_preview(file, user_input, manual_text, matched_companies=matched_companies)
+                result = self.resume_manager.generate_preview(file, user_input, manual_text)
                 if not result['success']:
                     st.error(f"❌ {result['error']}")
                     if 'errors' in result and result['errors']:

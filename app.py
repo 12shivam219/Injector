@@ -51,27 +51,6 @@ def main():
     st.title("📝 Resume Customizer")
     st.markdown(f"### 🎯 **Welcome to Resume Customizer v{APP_CONFIG['version']}**")
     
-    # Check if formats exist
-    from database.models import ResumeFormat
-    from database.session import get_session
-    
-    try:
-        with get_session() as session:
-            formats_exist = session.query(ResumeFormat).first() is not None
-    except Exception as e:
-        st.error(f"Error connecting to database: {str(e)}")
-        formats_exist = False
-        
-        if not formats_exist:
-            st.warning("""
-            ⚠️ **Important:** No resume formats are configured yet. 
-            Please go to the **Format Manager** tab first to upload some resume formats.
-            This helps the system better understand and process your resumes.
-            """)
-            
-            if st.button("🔄 Go to Format Manager"):
-                st.switch_page("pages/0_Format_Manager.py")
-    
     st.markdown("""
     **Transform your resume with AI-powered customization!**
     

@@ -54,12 +54,7 @@ from .models import (
     RequirementConsultant,
     DatabaseStats,
     AuditLog,
-    RequirementSummaryView,
-    
-    # Format models
-    ResumeFormat,
-    ResumeFormatMatch,
-    FormatElement
+    RequirementSummaryView
 )
 
 # Query optimizer (if available)
@@ -127,10 +122,7 @@ __all__ = [
     'AuditLog',
     'RequirementSummaryView',
     
-    # Format models
-    'ResumeFormat',
-    'ResumeFormatMatch',
-    'FormatElement',
+
     
     # Configuration
     'DatabaseConfig',

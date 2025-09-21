@@ -10,7 +10,6 @@ from ..base import Base, BaseModel
 
 # Import all models from their respective modules
 from .user import User
-
 from .resume import (
     ResumeDocument,
     ResumeCustomization,
@@ -27,12 +26,6 @@ from .requirements import (
     DatabaseStats,
     AuditLog,
     RequirementSummaryView
-)
-
-from .format import (
-    ResumeFormat,
-    ResumeFormatMatch,
-    FormatElement
 )
 
 __all__ = [
@@ -57,10 +50,5 @@ __all__ = [
     'RequirementConsultant',
     'DatabaseStats',
     'AuditLog',
-    'RequirementSummaryView',
-    
-    # Format models
-    'ResumeFormat',
-    'ResumeFormatMatch',
-    'FormatElement'
+    'RequirementSummaryView'
 ]
