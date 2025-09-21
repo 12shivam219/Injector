@@ -597,11 +597,10 @@ Python • Developed web applications using Django • Built APIs with Flask fra
             # Provide download button
             download_data = result.get('modified_content') or result.get('buffer')
             if download_data:
-                output_filename = f"customized_{file.name}"
                 st.download_button(
                     "📥 Download Customized Resume",
                     data=download_data,
-                    file_name=output_filename,
+                    file_name=file.name,
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     type="primary"
                 )
