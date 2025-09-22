@@ -12,6 +12,18 @@ from infrastructure.app.streamlit_config import setup_streamlit_env
 # Set up Streamlit environment for cloud deployment
 setup_streamlit_env()
 
+# In production explicitly require DATABASE_URL and fail with a clear UI message
+try:
+    from config import is_production
+    from database.config import safe_get_connection_string
+    if is_production() and not safe_get_connection_string():
+        import streamlit as _st
+        _st.error("Critical: production requires DATABASE_URL. Set the environment variable or Streamlit secrets and restart.")
+        raise SystemExit('DATABASE_URL not set in production environment')
+except Exception:
+    # If anything fails here, allow startup to continue so errors are visible in logs
+    pass
+
 # Startup key sanity check: ensure encryption keys are present in production
 import os
 def _check_encryption_keys():

@@ -10,6 +10,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
+from sqlalchemy import text
 from datetime import datetime
 import uuid
 from typing import Dict, Any
@@ -94,8 +95,14 @@ class Requirement(BaseModel):
     referral_source = Column(String(255))
     tags = Column(JSONB, default=list)
     
+    # Active flag to indicate soft-deletion / availability
+    is_active = Column(Boolean, nullable=False, default=True, server_default='true', index=True)
+
     # Legacy fields for backward compatibility
     legacy_data = Column(JSONB, default=dict)
+
+    # Version column for optimistic locking and schema compatibility
+    version = Column(Integer, nullable=False, server_default=text('1'), default=1, index=True)
     
     # Interview information
     interview_id = Column(String(100), unique=True, index=True)

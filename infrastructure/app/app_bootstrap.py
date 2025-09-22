@@ -139,14 +139,31 @@ def get_cached_services() -> Dict[str, Any]:
             logging.warning('Database environment file not loaded; falling back to environment variables')
 
         # Build connection string (may use DATABASE_URL or individual vars)
+        # Use a safe wrapper to avoid raising at import time
+        connection_string = None
         try:
-            connection_string = get_connection_string()
+            from database.config import safe_get_connection_string
+            connection_string = safe_get_connection_string()
         except Exception:
-            connection_string = None
+            # Fallback to original function if wrapper not found
+            try:
+                connection_string = get_connection_string()
+            except Exception:
+                connection_string = None
 
         # Initialize connection manager
         db_manager = DatabaseConnectionManager()
         initialized = False
+        # If running in production, require a connection string and fail fast
+        try:
+            from config import is_production
+            prod = is_production()
+        except Exception:
+            prod = False
+
+        if prod and not connection_string:
+            logging.critical('Production environment requires DATABASE_URL; aborting startup.')
+            raise SystemExit('DATABASE_URL not set in production environment')
         try:
             if connection_string:
                 initialized = db_manager.initialize(database_url=connection_string)
@@ -175,9 +192,17 @@ def get_cached_services() -> Dict[str, Any]:
 
         else:
             services['db_session'] = None
-            logging.error(
-                "Failed to initialize database connection. Check your .env or DATABASE_URL and ensure the database is reachable."
-            )
+            if not connection_string:
+                logging.error(
+                    "Failed to initialize database connection because no connection string was provided."
+                )
+                logging.error(
+                    "Set the environment variable `DATABASE_URL` (full SQLAlchemy URL) or configure Streamlit secrets before startup."
+                )
+            else:
+                logging.error(
+                    "Failed to initialize database connection. Check your .env or DATABASE_URL and ensure the database is reachable."
+                )
     except Exception as e:
         services['db_session'] = None
         logging.error(f"Database initialization error: {e}")

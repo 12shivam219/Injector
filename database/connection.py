@@ -107,8 +107,9 @@ class DatabaseConnectionManager:
             # Avoid printing full connection URL (may contain secrets)
             logger.info("Attempting to initialize database engine (connection details masked)")
             
-            # Get configuration from DatabaseConfig
-            db_config = DatabaseConfig().config
+            # Get configuration from DatabaseConfig (use lazy global getter)
+            from .config import get_database_config
+            db_config = get_database_config().get_config()
             self._connection_string = db_config.pop('url')  # Remove url from config dict
             
             # Add any additional configuration from kwargs

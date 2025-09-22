@@ -31,10 +31,23 @@ class RequirementsManager:
                 # Setup database environment
                 env_result = setup_database_environment()
                 if env_result['success']:
-                    # PostgreSQLRequirementsManager doesn't exist yet, fallback to JSON
-                    logger.warning("⚠️ PostgreSQLRequirementsManager not implemented, using JSON storage")
-                    self.use_database = False
-                    self.requirements = self._load_requirements()
+                    # Try to use PostgreSQLRequirementsManager if implemented
+                    try:
+                        from database.requirements_manager_db import PostgreSQLRequirementsManager
+                        self.db_manager = PostgreSQLRequirementsManager()
+                        # Prime the in-memory cache from DB
+                        try:
+                            self.requirements = {r['id']: r for r in self.db_manager.list_requirements()}
+                        except Exception:
+                            self.requirements = {}
+                    except ImportError:
+                        logger.warning("⚠️ PostgreSQLRequirementsManager not available, using JSON storage")
+                        self.use_database = False
+                        self.requirements = self._load_requirements()
+                    except Exception as e:
+                        logger.warning(f"⚠️ PostgreSQLRequirementsManager failed to initialize: {e}; using JSON storage")
+                        self.use_database = False
+                        self.requirements = self._load_requirements()
                 else:
                     logger.warning("⚠️ PostgreSQL setup failed, falling back to JSON storage")
                     self.use_database = False
@@ -372,6 +385,14 @@ def render_requirement_form(requirement_data: Optional[Dict[str, Any]] = None) -
                 'phone': '',
                 'email': ''
             }
+
+    # Persist form data in Streamlit session state so it survives reruns
+    record_id = form_data.get('id', 'new')
+    form_state_key = f"requirement_form_data_{record_id}"
+    if form_state_key not in st.session_state:
+        st.session_state[form_state_key] = form_data
+    # Rebind local reference to the session-backed object so all updates persist
+    form_data = st.session_state[form_state_key]
     
     # Create comprehensive form
     with st.form(key='requirement_form'):
@@ -456,14 +477,15 @@ def render_requirement_form(requirement_data: Optional[Dict[str, Any]] = None) -
                         st.markdown(f"> {comment_text}")
                         st.markdown("---")
             
-            # Add new comment
+            # Add new comment (use a separate widget key to avoid session_state write conflicts)
+            widget_key = f"new_comment_widget_{form_data.get('id', 'new')}"
             new_comment = st.text_area(
                 "Add New Comment",
                 placeholder="Enter your marketing comment here...",
                 height=100,
-                key=f"new_comment_{form_data.get('id', 'new')}"
+                key=widget_key
             )
-            
+
             if new_comment.strip():
                 if st.form_submit_button("➕ Add Comment", help="Add this comment to the requirement"):
                     new_comment_obj = {
@@ -473,6 +495,7 @@ def render_requirement_form(requirement_data: Optional[Dict[str, Any]] = None) -
                     if 'marketing_comments' not in form_data:
                         form_data['marketing_comments'] = []
                     form_data['marketing_comments'].append(new_comment_obj)
+                    # Do not attempt to modify the widget's session_state key here (Streamlit disallows it)
                     st.success("Comment added successfully!")
         
         # Section 2: Company Information
@@ -482,14 +505,15 @@ def render_requirement_form(requirement_data: Optional[Dict[str, Any]] = None) -
         
         with col1:
             # 7. Client Company (Text Input)
-            form_data['client_company'] = st.text_input(
+            client_company_input = st.text_input(
                 "Client Company*",
                 value=form_data.get('client_company', ''),
-                placeholder="Name of the client company"
+                placeholder="Name of the client company",
+                key=f"client_company_{form_data.get('id','new')}"
             )
-            
-            # Update legacy client field
-            form_data['client'] = form_data['client_company']
+            # Update form data and legacy client field
+            form_data['client_company'] = client_company_input
+            form_data['client'] = client_company_input
             
             # 8. Prime Vendor Company (Text Input)
             form_data['prime_vendor_company'] = st.text_input(
@@ -531,7 +555,8 @@ def render_requirement_form(requirement_data: Optional[Dict[str, Any]] = None) -
             form_data['vendor_details']['vendor_email'] = st.text_input(
                 "Vendor Email",
                 value=form_data.get('vendor_details', {}).get('vendor_email', ''),
-                placeholder="Vendor email address"
+                placeholder="Vendor email address",
+                max_chars=254
             )
             
             # Update legacy vendor_info for backward compatibility
@@ -572,14 +597,16 @@ def render_requirement_form(requirement_data: Optional[Dict[str, Any]] = None) -
             )
             
             # 10.4 Job Title (Text Input)
-            form_data['job_requirement_info']['job_title'] = st.text_input(
+            job_title_input = st.text_input(
                 "Job Title*",
                 value=form_data.get('job_requirement_info', {}).get('job_title', ''),
-                placeholder="E.g., Senior Software Engineer"
+                placeholder="E.g., Senior Software Engineer",
+                key=f"job_title_{form_data.get('id','new')}",
+                max_chars=200
             )
-            
-            # Update legacy job_title field
-            form_data['job_title'] = form_data['job_requirement_info']['job_title']
+            # Update form data and legacy job_title field
+            form_data['job_requirement_info']['job_title'] = job_title_input
+            form_data['job_title'] = job_title_input
             
             # 10.5 Job Portal Link (Text Input / URL Field)
             form_data['job_requirement_info']['job_portal_link'] = st.text_input(
@@ -606,8 +633,60 @@ def render_requirement_form(requirement_data: Optional[Dict[str, Any]] = None) -
             
             # Removed Applied For Consultants section as requested
         
-        # Form submit button
-        submitted = st.form_submit_button("💾 Save Requirement", help="Save this requirement with all the provided information")
+        # Disable submit until required fields are filled
+        can_submit = bool(
+            (form_data.get('job_requirement_info', {}).get('job_title') or '').strip()
+            and (form_data.get('client_company') or '').strip()
+        )
+
+        # Field-level validators
+        validation_errors = []
+
+        # Vendor email format validation (if provided)
+        vendor_email = form_data.get('vendor_details', {}).get('vendor_email', '') or ''
+        if vendor_email:
+            import re
+            email_re = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+            if not email_re.match(vendor_email):
+                validation_errors.append("Vendor email looks invalid")
+
+        # Vendor phone: allow digits, +, -, spaces and parentheses; limit length
+        vendor_phone = form_data.get('vendor_details', {}).get('vendor_phone_number', '') or ''
+        if vendor_phone:
+            import re
+            phone_re = re.compile(r"^[0-9+()\-\s]{7,20}$")
+            if not phone_re.match(vendor_phone):
+                validation_errors.append("Vendor phone number looks invalid (allowed: digits, + - () and spaces)")
+
+        # Job title and client length checks
+        if form_data.get('job_requirement_info', {}).get('job_title') and len(form_data.get('job_requirement_info', {}).get('job_title')) > 200:
+            validation_errors.append("Job title exceeds 200 characters")
+        if form_data.get('client_company') and len(form_data.get('client_company')) > 200:
+            validation_errors.append("Client company name exceeds 200 characters")
+
+        if validation_errors:
+            for err in validation_errors:
+                st.error(err)
+            # Prevent submission when validators fail
+            can_submit = False
+
+        # Debugging aid: show why submit may be disabled
+        debug_job_title = form_data.get('job_requirement_info', {}).get('job_title', '')
+        debug_client = form_data.get('client_company', '') or form_data.get('client', '')
+        st.caption(f"Debug: job_title='{debug_job_title}', client_company='{debug_client}', can_submit={can_submit}")
+        if validation_errors:
+            st.caption("Validation errors: " + ", ".join(validation_errors))
+
+        if not can_submit:
+            st.warning("Please fill in the required fields: Job Title and Client Company")
+
+        # Form submit button (disabled if required fields are missing)
+        # Always enable submit so server-side validators can provide detailed feedback
+        submitted = st.form_submit_button(
+            "💾 Save Requirement",
+            help="Save this requirement with all the provided information",
+            disabled=False
+        )
         
         # Debug information
         if submitted:
@@ -669,11 +748,33 @@ def render_requirement_form(requirement_data: Optional[Dict[str, Any]] = None) -
                 st.error("Please fill in all required fields (marked with *)")
                 st.error(f"Job Title: '{job_title}', Client Company: '{client_company}'")
                 return None
+
+            # Run server-side validators (same as above)
+            server_validation_errors = []
+            if vendor_email:
+                import re
+                email_re = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+                if not email_re.match(vendor_email):
+                    server_validation_errors.append("Vendor email looks invalid")
+            if vendor_phone:
+                import re
+                phone_re = re.compile(r"^[0-9+()\-\s]{7,20}$")
+                if not phone_re.match(vendor_phone):
+                    server_validation_errors.append("Vendor phone number looks invalid (allowed: digits, + - () and spaces)")
+            if len(job_title) > 200:
+                server_validation_errors.append("Job title exceeds 200 characters")
+            if form_data.get('client_company') and len(form_data.get('client_company')) > 200:
+                server_validation_errors.append("Client company name exceeds 200 characters")
+
+            if server_validation_errors:
+                for err in server_validation_errors:
+                    st.error(err)
+                return None
             
-            # Handle new comment if provided
-            new_comment_key = f"new_comment_{form_data.get('id', 'new')}"
-            if new_comment_key in st.session_state and st.session_state[new_comment_key].strip():
-                new_comment_text = st.session_state[new_comment_key].strip()
+            # Handle new comment if provided (read from widget key)
+            new_comment_widget_key = f"new_comment_widget_{form_data.get('id', 'new')}"
+            if new_comment_widget_key in st.session_state and st.session_state[new_comment_widget_key].strip():
+                new_comment_text = st.session_state[new_comment_widget_key].strip()
                 new_comment_obj = {
                     'comment': new_comment_text,
                     'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -681,8 +782,7 @@ def render_requirement_form(requirement_data: Optional[Dict[str, Any]] = None) -
                 if 'marketing_comments' not in form_data:
                     form_data['marketing_comments'] = []
                 form_data['marketing_comments'].append(new_comment_obj)
-                # Clear the comment from session state after adding
-                st.session_state[new_comment_key] = ""
+                # Do not attempt to clear the widget value programmatically (avoids StreamlitAPIException)
                 
             # Ensure all nested dictionaries exist with proper structure
             if 'vendor_details' not in form_data:
@@ -721,12 +821,20 @@ def render_requirement_form(requirement_data: Optional[Dict[str, Any]] = None) -
                 # Auto-capture requirement entered date if it's a new requirement
                 form_data['job_requirement_info']['requirement_entered_date'] = datetime.now().isoformat()
             form_data['updated_at'] = current_time
-            
+            # Mark the form result so the page handler can create/update
+            # Also store last prepared requirement in session so the UI can show it
+            result_key = f"last_prepared_requirement_{form_data.get('id','new')}"
+            st.session_state[result_key] = form_data
+            st.session_state['last_created_requirement_candidate'] = form_data
             return form_data
             
         except Exception as e:
-            logger.error(f"Error processing form submission: {e}")
-            st.error("An error occurred while processing your request. Please try again.")
+            import traceback
+            tb = traceback.format_exc()
+            logger.error(f"Error processing form submission: {e}\n{tb}")
+            # Show the traceback in the UI for debugging (can be removed later)
+            st.error("An error occurred while processing your request. See details below (debug):")
+            st.code(tb)
             return None
     
     return None
@@ -744,16 +852,26 @@ def render_requirements_list(requirements_manager: RequirementsManager):
     # Export/Import functionality
     col1, col2, col3 = st.columns([1, 1, 2])
     
+    # Build a short, stable suffix for widget keys to avoid collisions when the
+    # same UI is rendered multiple times (e.g. inline view + tab view).
+    try:
+        _key_suffix = str(abs(hash(getattr(requirements_manager, 'storage_file', 'requirements'))))[:8]
+    except Exception:
+        _key_suffix = str(abs(hash('requirements')))
+
     with col1:
-        if st.button("📄 Export All"):
+        export_key = f"export_all_requirements_{_key_suffix}"
+        if st.button("📄 Export All", key=export_key):
             export_data = requirements_manager.export_requirements()
             if export_data:
+                download_key = f"download_reqs_{_key_suffix}"
                 st.download_button(
                     label="💾 Download Requirements",
                     data=export_data,
                     file_name=f"requirements_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                     mime="application/json",
-                    help="Download all requirements as JSON file"
+                    help="Download all requirements as JSON file",
+                    key=download_key
                 )
                 st.success("Requirements exported successfully!")
             else:
@@ -771,7 +889,8 @@ def render_requirements_list(requirements_manager: RequirementsManager):
             import_data = uploaded_file.read().decode('utf-8')
             merge_option = st.checkbox("Merge with existing (otherwise replace all)", value=True, key="merge_requirements_option")
             
-            if st.button("📅 Import Requirements"):
+            import_key = f"import_requirements_button_{_key_suffix}"
+            if st.button("📅 Import Requirements", key=import_key):
                 success = requirements_manager.import_requirements(import_data, merge=merge_option)
                 if success:
                     st.success("Requirements imported successfully!")
@@ -783,6 +902,31 @@ def render_requirements_list(requirements_manager: RequirementsManager):
         st.info(f"📊 Total Requirements: {len(requirements)}")
     
     st.markdown("---")
+    # Highlight the last created requirement if present in session state
+    highlight_id = None
+    try:
+        highlight_id = st.session_state.get('last_created_requirement_id')
+    except Exception:
+        highlight_id = None
+
+    # When a highlight_id is present, we will show that item first with emphasis
+    if highlight_id and highlight_id in [r.get('id') for r in requirements]:
+        highlighted = [r for r in requirements if r.get('id') == highlight_id]
+        others = [r for r in requirements if r.get('id') != highlight_id]
+
+        for r in highlighted:
+            st.success(f"✅ Newly Created: {r.get('job_title','(no title)')} — ID: {r.get('id')}")
+            st.markdown(f"**Client:** {r.get('client_company') or r.get('client','')}")
+            st.markdown(f"**Status:** {r.get('req_status') or r.get('status','')}")
+            st.markdown("---")
+
+        # Clear the highlight flag so it doesn't persist forever
+        try:
+            del st.session_state['last_created_requirement_id']
+        except Exception:
+            pass
+
+        requirements = others
     
     # Sort requirements by creation date (newest first)
     try:

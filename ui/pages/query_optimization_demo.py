@@ -67,7 +67,7 @@ def show_pagination_demo(optimizer):
     with col2:
         page_number = st.slider("Page Number", min_value=1, max_value=10, value=1)
     
-    if st.button("Run Pagination Test"):
+    if st.button("Run Pagination Test", key="query_optimization_demo_run_pagination_test"):
         with st.spinner("Running pagination performance test..."):
             # Run standard pagination
             start_time = time.time()
@@ -126,7 +126,7 @@ def show_batch_processing_demo(optimizer):
     with col2:
         total_items = st.slider("Total Items to Process", min_value=100, max_value=5000, value=1000, step=100)
     
-    if st.button("Run Batch Processing Test"):
+    if st.button("Run Batch Processing Test", key="query_optimization_demo_run_batch_processing_test"):
         with st.spinner("Running batch processing test..."):
             progress_bar = st.progress(0)
             status_text = st.empty()
@@ -179,7 +179,7 @@ def show_index_management_demo(optimizer):
     Demonstrate the impact of proper database indexing on query performance.
     """)
     
-    if st.button("Show Available Indexes"):
+    if st.button("Show Available Indexes", key="query_optimization_demo_show_available_indexes"):
         with st.spinner("Retrieving index information..."):
             # In a real implementation, we would query the database for actual indexes
             # For demo purposes, we'll show the indexes that would be created
@@ -259,7 +259,7 @@ def show_query_analysis_demo(optimizer):
     query_text = sample_queries[selected_query]
     st.code(query_text, language="sql")
     
-    if st.button("Analyze Query"):
+    if st.button("Analyze Query", key="query_optimization_demo_analyze_query"):
         with st.spinner("Analyzing query performance..."):
             # In a real implementation, we would call optimizer.analyze_query_performance
             # For demo purposes, we'll show mock analysis results

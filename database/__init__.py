@@ -72,7 +72,6 @@ except ImportError:
 # Configuration
 from .config import (
     DatabaseConfig,
-    db_config,
     get_database_config,
     get_connection_string,
     get_engine_config,
@@ -126,7 +125,6 @@ __all__ = [
     
     # Configuration
     'DatabaseConfig',
-    'db_config',
     'get_database_config',
     'get_connection_string',
     'get_engine_config',

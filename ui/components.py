@@ -85,7 +85,7 @@ class UIComponents:
             
             # Help section
             st.markdown("#### ℹ️ Help")
-            if st.button("📚 View Documentation"):
+            if st.button("📚 View Documentation", key="components_view_documentation"):
                 st.session_state.current_page = "guide"
                 st.rerun()
     
@@ -142,7 +142,7 @@ class UIComponents:
             
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("🗑️ Clear Session", help="Reset session data", use_container_width=True):
+                if st.button("🗑️ Clear Session", key="components_clear_session", help="Reset session data", use_container_width=True):
                     # Fast session clear
                     keys_to_delete = [k for k in st.session_state.keys() if not k.startswith('_')]
                     for key in keys_to_delete:
@@ -151,7 +151,7 @@ class UIComponents:
                     st.rerun()
             
             with col2:
-                if st.button("🧹 Clear Cache", help="Clear cache", use_container_width=True):
+                if st.button("🧹 Clear Cache", key="components_clear_cache", help="Clear cache", use_container_width=True):
                     st.cache_data.clear()
                     st.cache_resource.clear()
                     st.toast("Cache cleared!", icon="✅")

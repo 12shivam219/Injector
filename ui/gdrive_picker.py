@@ -53,7 +53,7 @@ def gdrive_picker_ui():
     file_names = [f["name"] for f in files]
     selected_files = st.multiselect('Select one or more DOCX files from your Google Drive:', file_names)
     results = []
-    if st.button('Download Selected File(s)') and selected_files:
+    if st.button('Download Selected File(s)', key='gdrive_picker_download_selected_file_s') and selected_files:
         with st.spinner("Downloading selected files from Google Drive..."):
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future_to_file = {

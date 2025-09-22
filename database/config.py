@@ -186,24 +186,38 @@ class DatabaseConfig:
             display_config['password'] = '*' * len(display_config['password'])
         return display_config
 
-# Global database configuration instance
-db_config = DatabaseConfig()
+# Lazy global database configuration instance
+_db_config: Optional[DatabaseConfig] = None
+
+def _ensure_db_config() -> DatabaseConfig:
+    """Ensure the global DatabaseConfig instance is created lazily."""
+    global _db_config
+    if _db_config is None:
+        _db_config = DatabaseConfig()
+    return _db_config
 
 def get_database_config() -> DatabaseConfig:
     """Get global database configuration instance"""
-    return db_config
+    return _ensure_db_config()
 
 def get_connection_string() -> str:
     """Get database connection string"""
-    return db_config.get_connection_string()
+    return _ensure_db_config().get_connection_string()
+
+def safe_get_connection_string() -> Optional[str]:
+    """Return connection string or None if not configured instead of raising."""
+    try:
+        return get_connection_string()
+    except Exception:
+        return None
 
 def get_engine_config() -> Dict[str, Any]:
     """Get SQLAlchemy engine configuration"""
-    return db_config.get_engine_config()
+    return _ensure_db_config().get_engine_config()
 
 def validate_database_config() -> Dict[str, Any]:
     """Validate database configuration"""
-    return db_config.validate_config()
+    return _ensure_db_config().validate_config()
 
 def create_env_file_template(file_path: str = ".env.template") -> bool:
     """
@@ -285,11 +299,11 @@ def load_env_file(file_path: str = ".env") -> bool:
                     os.environ[key] = value
         
         logger.info(f"✅ Environment variables loaded from: {file_path}")
-        
+
         # Reload database configuration after loading env file
-        global db_config
-        db_config = DatabaseConfig()
-        
+        global _db_config
+        _db_config = DatabaseConfig()
+
         return True
         
     except Exception as e:
